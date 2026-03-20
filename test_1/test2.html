@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM 原生对话样式渲染</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css">
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --chat-bg: #f9f9f9;
+            --text-color: #24292f;
+            --border-color: #e5e7eb;
+            --user-avatar: #10a37f;
+            --ai-avatar: #667eea;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 主对话区域，可滚动 */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 20px;
+        }
+
+        /* 每一行对话的通用容器 */
+        .message-row {
+            padding: 24px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        /* 区分AI和User的背景色 */
+        .message-row.ai { background-color: var(--chat-bg); }
+        .message-row.user { background-color: var(--bg-color); }
+
+        /* 内容居中约束区 */
+        .message-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            gap: 20px;
+            padding: 0 20px;
+        }
+
+        /* 头像样式 */
+        .avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .user .avatar { background-color: var(--user-avatar); }
+        .ai .avatar { background-color: var(--ai-avatar); }
+
+        /* 纯文本 Markdown 风格容器 */
+        .markdown-body {
+            flex: 1;
+            line-height: 1.6;
+            font-size: 15px;
+            overflow-x: auto;
+        }
+        .markdown-body p { margin-top: 0; margin-bottom: 16px; }
+        .markdown-body strong { font-weight: 600; }
+        .markdown-body pre { background: #f6f8fa; padding: 16px; border-radius: 6px; }
+
+        /* 图表容器：无多余修饰，占满文本宽度 */
+        .chart-wrapper {
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: #fff;
+            padding: 10px;
+        }
+
+        /* 底部固定的输入对话框 */
+        .input-container {
+            border-top: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .input-box {
+            max-width: 800px;
+            width: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px 16px;
+            background: #fff;
+            box-shadow: 0 0 15px rgba(0,0,0,0.05);
+        }
+        .input-box textarea {
+            width: 100%;
+            border: none;
+            outline: none;
+            resize: none;
+            font-size: 15px;
+            font-family: inherit;
+            height: 24px;
+            line-height: 24px;
+            padding: 0;
+            background: transparent;
+        }
+        .send-btn {
+            background: #10a37f;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        
+        <div class="message-row user">
+            <div class="message-content">
+                <div class="avatar"><i class="fa fa-user"></i></div>
+                <div class="markdown-body">
+                    <p>帮我把以下数据画成图表：<br><br>
+                    数量随时间变化为：<br>
+                    "时间1":224,<br>
+                    "时间2":268,<br>
+                    "时间3":307,<br>
+                    "时间4":221<br><br>
+                    本周分类数量为：<br>
+                    "分类1":127,<br>
+                    "分类2":555,<br>
+                    "分类3":238,<br>
+                    "分类4":700</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="message-row ai">
+            <div class="message-content">
+                <div class="avatar"><i class="fa fa-cube"></i></div>
+                <div class="markdown-body">
+                    <p>好的，我已经根据您提供的数据为您生成了对应的图表分析。</p>
+                    <p>首先是**数量随时间变化**的折线图：</p>
+                    
+                    <div id="chart-time" class="chart-wrapper"></div>
+                    
+                    <p>从上图中可以看出，数量在“时间3”达到了峰值（307），而在“时间4”有明显的回落。</p>
+                    <p>接下来是**本周各分类数量**的柱状图对比：</p>
+                    
+                    <div id="chart-category" class="chart-wrapper"></div>
+                    
+                    <p>通过对比可知，**分类4**的数据表现最为突出，达到了 700；**分类2**紧随其后（555）；而分类1的数据量相对最少。</p>
+                    <p>如果您还有其他数据需要分析或调整图表格式，请随时告诉我！</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="input-container">
+        <div class="input-box">
+            <textarea placeholder="给大模型发送消息..." rows="1"></textarea>
+            <button class="send-btn"><i class="fa fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/echarts/3.4.0/echarts.min.js"></script>
+
+    <script>
+        // 确保页面加载完成后初始化图表
+        window.onload = function() {
+            var charts = []; // 存储图表实例用于自适应大小
+
+            // ===== 1. 数量随时间变化 (折线图) =====
+            var chartTime = echarts.init(document.getElementById('chart-time'));
+            var optionTime = {
+                title: { 
+                    text: '数量随时间变化趋势', 
+                    left: 'center',
+                    top: 10,
+                    textStyle: { fontSize: 15, fontWeight: 'normal' }
+                },
+                tooltip: { trigger: 'axis' },
+                grid: { left: '3%', right: '4%', bottom: '5%', containLabel: true },
+                xAxis: { 
+                    type: 'category', 
+                    data: ['时间1', '时间2', '时间3', '时间4'],
+                    axisLine: { lineStyle: { color: '#ccc' } },
+                    axisLabel: { color: '#333' }
+                },
+                yAxis: { 
+                    type: 'value',
+                    splitLine: { lineStyle: { type: 'dashed', color: '#eee' } },
+                    axisLine: { show: false },
+                    axisLabel: { color: '#333' }
+                },
+                series: [{
+                    data: [224, 268, 307, 221],
+                    type: 'line',
+                    smooth: true,
+                    symbolSize: 8,
+                    itemStyle: { normal: { color: '#10a37f' } },
+                    areaStyle: {
+                        normal: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                {offset: 0, color: 'rgba(16, 163, 127, 0.3)'},
+                                {offset: 1, color: 'rgba(16, 163, 127, 0.05)'}
+                            ])
+                        }
+                    },
+                    label: { normal: { show: true, position: 'top' } }
+                }]
+            };
+            chartTime.setOption(optionTime);
+            charts.push(chartTime);
+
+            // ===== 2. 本周分类数量 (柱状图) =====
+            var chartCategory = echarts.init(document.getElementById('chart-category'));
+            var optionCategory = {
+                title: { 
+                    text: '本周各分类数量统计', 
+                    left: 'center',
+                    top: 10,
+                    textStyle: { fontSize: 15, fontWeight: 'normal' }
+                },
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '5%', containLabel: true },
+                xAxis: { 
+                    type: 'category', 
+                    data: ['分类1', '分类2', '分类3', '分类4'],
+                    axisLine: { lineStyle: { color: '#ccc' } },
+                    axisLabel: { color: '#333' }
+                },
+                yAxis: { 
+                    type: 'value',
+                    splitLine: { lineStyle: { type: 'dashed', color: '#eee' } },
+                    axisLine: { show: false },
+                    axisLabel: { color: '#333' }
+                },
+                series: [{
+                    data: [127, 555, 238, 700],
+                    type: 'bar',
+                    barMaxWidth: 45,
+                    itemStyle: { normal: { color: '#667eea', borderRadius: [4, 4, 0, 0] } },
+                    label: { normal: { show: true, position: 'top' } }
+                }]
+            };
+            chartCategory.setOption(optionCategory);
+            charts.push(chartCategory);
+
+            // 监听窗口缩放，保证图表自适应排版
+            window.addEventListener('resize', function() {
+                charts.forEach(function(chart) {
+                    chart.resize();
+                });
+            });
+        };
+    </script>
+</body>
+</html>
