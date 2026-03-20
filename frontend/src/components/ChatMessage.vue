@@ -1,16 +1,18 @@
 <template>
-  <div class="message-row" :class="roleClass">
-    <div class="message-content">
-      <div class="avatar">
-        <i v-if="role === 'user'" class="fa fa-user"></i>
-        <i v-else class="fa fa-cube"></i>
+  <div class="message-row">
+    <div class="message-content" :class="{ 'user-message': role === 'user', 'ai-message': role === 'assistant' }">
+      <div class="avatar" v-if="role === 'assistant'">
+        <i class="fa fa-cube"></i>
       </div>
-      <div class="message-body">
+      <div class="message-bubble">
         <template v-for="(segment, index) in contentSegments" :key="segment.type === 'chart' ? segment.data?.id || `chart-${index}` : `text-${index}`">
           <MarkdownRenderer v-if="segment.type === 'text'" :content="segment.content || ''" />
           <ChartRenderer v-else-if="segment.type === 'chart' && segment.data" :chart="segment.data" />
         </template>
         <span v-if="isStreaming" class="cursor">|</span>
+      </div>
+      <div class="avatar" v-if="role === 'user'">
+        <i class="fa fa-user"></i>
       </div>
     </div>
   </div>
@@ -29,9 +31,6 @@ const props = defineProps<{
   embeds?: EmbedData[]
   isStreaming?: boolean
 }>()
-
-// 修复 CSS 类名映射：'assistant' -> 'ai'
-const roleClass = computed(() => props.role === 'assistant' ? 'ai' : props.role)
 
 interface ContentSegment {
   type: 'text' | 'chart'
@@ -94,30 +93,33 @@ const contentSegments = computed((): ContentSegment[] => {
 @import url("https://cdn.bootcdn.net/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css");
 
 .message-row {
-  padding: 24px 0;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.message-row.user {
-  background-color: #ffffff;
-}
-
-.message-row.ai {
-  background-color: #f9f9f9;
+  padding: 16px 0;
 }
 
 .message-content {
   max-width: 800px;
   margin: 0 auto;
   display: flex;
-  gap: 20px;
-  padding: 0 20px;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 0 16px;
 }
 
+/* 用户消息 - 右对齐 */
+.user-message {
+  flex-direction: row-reverse;
+}
+
+/* AI 消息 - 左对齐 */
+.ai-message {
+  flex-direction: row;
+}
+
+/* 头像 */
 .avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 4px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -126,16 +128,67 @@ const contentSegments = computed((): ContentSegment[] => {
   flex-shrink: 0;
 }
 
-.user .avatar {
-  background-color: #10a37f;
+.user-message .avatar {
+  background: linear-gradient(135deg, #10a37f 0%, #0d8a6a 100%);
 }
 
-.ai .avatar {
-  background-color: #667eea;
+.ai-message .avatar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-.message-body {
-  flex: 1;
+/* 气泡框 */
+.message-bubble {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  line-height: 1.6;
+  word-wrap: break-word;
+  overflow-x: auto;
+}
+
+.user-message .message-bubble {
+  background: linear-gradient(135deg, #10a37f 0%, #0d8a6a 100%);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.ai-message .message-bubble {
+  background: #f3f4f6;
+  color: #1f2937;
+  border-bottom-left-radius: 4px;
+}
+
+/* 用户消息中的链接颜色 */
+.user-message .message-bubble :deep(a) {
+  color: #fff;
+  text-decoration: underline;
+}
+
+/* AI 消息中的 Markdown 样式 */
+.ai-message .message-bubble :deep(h1),
+.ai-message .message-bubble :deep(h2),
+.ai-message .message-bubble :deep(h3) {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: #1f2937;
+}
+
+.ai-message .message-bubble :deep(p) {
+  margin-bottom: 8px;
+}
+
+.ai-message .message-bubble :deep(code) {
+  background: #e5e7eb;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.ai-message .message-bubble :deep(pre) {
+  background: #1f2937;
+  color: #f3f4f6;
+  padding: 12px;
+  border-radius: 8px;
   overflow-x: auto;
 }
 
