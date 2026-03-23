@@ -9,16 +9,19 @@ export function sendChatStream(
   message: string,
   onContent: (content: string) => void,
   onChart: (chart: any) => void,
+  onCard: (card: any) => void,
   onEnd: () => void,
   onError: (error: Error) => void,
-  options?: { testMode?: boolean }
+  options?: { testMode?: boolean; echoMode?: boolean }
 ): () => void {
-  console.log('[Chat API] Starting stream, message:', message, 'testMode:', options?.testMode)
+  console.log('[Chat API] Starting stream, message:', message, 'testMode:', options?.testMode, 'echoMode:', options?.echoMode)
 
   // 直接访问后端，绕过Vite代理
   const baseUrl = 'http://localhost:8000'
+  const isEcho = options?.echoMode
+  const endpoint = isEcho ? '/api/chat/echo/stream' : '/api/chat/stream'
   const testParam = options?.testMode ? '&test=true' : ''
-  const url = `${baseUrl}/api/chat/stream?message=${encodeURIComponent(message)}${testParam}`
+  const url = `${baseUrl}${endpoint}?message=${encodeURIComponent(message)}${testParam}`
 
   console.log('[Chat API] URL:', url)
 
@@ -46,6 +49,9 @@ export function sendChatStream(
           break
         case 'chart':
           onChart(data.data)
+          break
+        case 'card':
+          onCard(data.data)
           break
         case 'end':
           console.log('[Chat API] End event received, total events:', eventCount)

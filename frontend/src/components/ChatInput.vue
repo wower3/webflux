@@ -22,7 +22,8 @@
       </el-button>
     </div>
     <div class="test-mode-toggle">
-      <el-checkbox v-model="testMode" label="测试模式 (从文件读取)" size="small" />
+      <el-checkbox v-model="testMode" label="测试模式" size="small" />
+      <el-checkbox v-model="echoMode" label="回显模式" size="small" />
     </div>
   </div>
 </template>
@@ -31,18 +32,19 @@
 import { ref } from 'vue'
 
 const emit = defineEmits<{
-  send: [message: string, testMode: boolean]
+  send: [message: string, testMode: boolean, echoMode: boolean]
 }>()
 
 const inputText = ref('')
 const loading = defineModel<boolean>('loading', { default: false })
 const testMode = ref(false)
+const echoMode = ref(false)
 
 const handleSend = () => {
   const message = inputText.value.trim()
   if (!message || loading.value) return
 
-  emit('send', message, testMode.value)
+  emit('send', message, testMode.value, echoMode.value)
   inputText.value = ''
 }
 </script>

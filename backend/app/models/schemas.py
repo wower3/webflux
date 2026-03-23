@@ -2,7 +2,7 @@
 Pydantic数据模型定义
 """
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 
 class ChatRequest(BaseModel):
@@ -22,5 +22,29 @@ class ChartData(BaseModel):
 
 class StreamEvent(BaseModel):
     """流式事件模型"""
-    type: str  # content | chart | end
+    type: str  # content | chart | card | end
     data: Optional[dict | str] = None
+
+
+class CardInfoItem(BaseModel):
+    """卡片信息项"""
+    key: str
+    label: str
+    value: str
+
+
+class CardButton(BaseModel):
+    """卡片按钮"""
+    actionId: str
+    label: str
+    apiEndpoint: Optional[str] = None
+
+
+class CardData(BaseModel):
+    """卡片数据模型"""
+    type: str = "card"
+    cardId: str
+    cardName: str
+    displayTitle: str
+    cardInfo: List[CardInfoItem]
+    buttons: List[CardButton]

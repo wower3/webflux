@@ -5,9 +5,10 @@
         <i class="fa fa-cube"></i>
       </div>
       <div class="message-bubble">
-        <template v-for="(segment, index) in contentSegments" :key="segment.type === 'chart' ? segment.data?.id || `chart-${index}` : `text-${index}`">
+        <template v-for="(segment, index) in contentSegments" :key="segment.type === 'chart' ? segment.data?.id || `chart-${index}` : segment.type === 'card' ? segment.data?.cardId || `card-${index}` : `text-${index}`">
           <MarkdownRenderer v-if="segment.type === 'text'" :content="segment.content || ''" />
-          <ChartRenderer v-else-if="segment.type === 'chart' && segment.data" :chart="segment.data" />
+          <ChartRenderer v-else-if="segment.type === 'chart' && segment.data" :chart="segment.data as ChartData" />
+          <CardRenderer v-else-if="segment.type === 'card' && segment.data" :card="segment.data as CardData" @remove="handleRemoveCard" />
         </template>
         <span v-if="isStreaming" class="cursor">|</span>
       </div>
@@ -22,7 +23,8 @@
 import { computed } from 'vue'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import ChartRenderer from './ChartRenderer.vue'
-import type { EmbedData, ChartData } from '@/types'
+import CardRenderer from './CardRenderer.vue'
+import type { EmbedData, ChartData, CardData } from '@/types'
 
 const props = defineProps<{
   role: 'user' | 'assistant'
@@ -32,10 +34,18 @@ const props = defineProps<{
   isStreaming?: boolean
 }>()
 
+const emit = defineEmits<{
+  removeCard: [cardId: string]
+}>()
+
+const handleRemoveCard = (cardId: string) => {
+  emit('removeCard', cardId)
+}
+
 interface ContentSegment {
-  type: 'text' | 'chart'
+  type: 'text' | 'chart' | 'card'
   content?: string
-  data?: ChartData
+  data?: ChartData | CardData
 }
 
 const PLACEHOLDER_PATTERN = /\[([A-Z]+):([^\]]+)\]/g
@@ -72,6 +82,11 @@ const contentSegments = computed((): ContentSegment[] => {
           title: embed.data.title,
           data: embed.data.chartData
         }
+      })
+    } else if (embed && embed.type === 'card') {
+      segments.push({
+        type: 'card',
+        data: embed.data
       })
     }
 

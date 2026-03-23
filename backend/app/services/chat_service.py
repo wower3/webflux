@@ -14,10 +14,15 @@ def format_sse_text(content: str) -> str:
     return f"data: {json.dumps({'type': 'content', 'data': content}, ensure_ascii=False)}\n\n"
 
 
+def format_sse_card(card_data: dict) -> str:
+    """格式化卡片SSE事件"""
+    return f"data: {json.dumps({'type': 'card', 'data': card_data}, ensure_ascii=False)}\n\n"
+
+
 async def stream_text_by_length(
     content: str,
     chunk_size: int = 15,
-    delay: float = 0.2
+    delay: float = 0.1
 ) -> AsyncGenerator[str, None]:
     """
     按固定长度拆分文本并模拟流式发送
@@ -64,6 +69,45 @@ async def generate_stream_from_file(
     async for chunk in stream_text_by_length(content, chunk_size, delay):
         yield chunk
 
+    yield f"data: {json.dumps({'type': 'end', 'data': None}, ensure_ascii=False)}\n\n"
+
+
+async def generate_echo_stream(message: str) -> AsyncGenerator[str, None]:
+    """
+    回显模式：将用户输入的消息原样流式返回
+    用于测试前端渲染能力
+
+    Args:
+        message: 用户输入的消息（支持文本、Markdown、图表JSON等）
+
+    Yields:
+        SSE格式的响应数据，逐字符或分块返回
+    """
+    if not message:
+        yield format_sse_text("请输入要回显的内容")
+        yield f"data: {json.dumps({'type': 'end', 'data': None}, ensure_ascii=False)}\n\n"
+        return
+
+    # 检测是否是格式化的 JSON，如果是则压缩
+    trimmed = message.strip()
+    if trimmed.startswith('{') and '}' in trimmed:
+        try:
+            # 尝试解析为 JSON
+            parsed = json.loads(trimmed)
+            # 如果成功，重新序列化为紧凑格式
+            message = json.dumps(parsed, ensure_ascii=False)
+            print(f"[Echo] 压缩 JSON: {len(trimmed)} -> {len(message)} 字符")
+        except json.JSONDecodeError:
+            # 不是有效 JSON，保持原样
+            pass
+
+    # 按字符流式返回，模拟打字机效果
+    # 对于包含JSON的内容，前端 parseEmbeds 会自动解析图表
+    for char in message:
+        yield format_sse_text(char)
+        await asyncio.sleep(0.01)  # 每个字符延迟30ms
+
+    # 发送结束标志
     yield f"data: {json.dumps({'type': 'end', 'data': None}, ensure_ascii=False)}\n\n"
 
 

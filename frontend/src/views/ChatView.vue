@@ -8,6 +8,7 @@
         :content="msg.content"
         :embeds="msg.embeds"
         :is-streaming="msg.isStreaming"
+        @remove-card="handleRemoveCard"
       />
     </div>
     <ChatInput @send="handleSend" v-model:loading="isLoading" />
@@ -42,7 +43,7 @@ const scrollToBottom = () => {
 function parseEmbeds(content: string): { cleanContent: string, embeds: EmbedData[] } {
   const embeds: EmbedData[] = []
   const processedIds = new Set<string>()
-  const embedStart = '{"type":"'
+  const embedStart = '{"type": "'
   let startPos = content.indexOf(embedStart)
 
   while (startPos !== -1) {
@@ -72,7 +73,16 @@ function parseEmbeds(content: string): { cleanContent: string, embeds: EmbedData
             })
             const placeholder = `[CHART:${data.chartId}]`
             content = content.substring(0, startPos) + placeholder + content.substring(pos + 1)
-            // 从占位符后继续搜索
+            pos = startPos + placeholder.length - 1
+          } else if (data.type === 'card' && data.cardId && !processedIds.has(data.cardId)) {
+            processedIds.add(data.cardId)
+            embeds.push({
+              id: data.cardId,
+              type: 'card',
+              data: data
+            })
+            const placeholder = `[CARD:${data.cardId}]`
+            content = content.substring(0, startPos) + placeholder + content.substring(pos + 1)
             pos = startPos + placeholder.length - 1
           }
         } catch (e) {
@@ -89,7 +99,27 @@ function parseEmbeds(content: string): { cleanContent: string, embeds: EmbedData
   return { cleanContent: content, embeds }
 }
 
-const handleSend = async (userMessage: string, testMode: boolean = false) => {
+const handleRemoveCard = (cardId: string) => {
+  console.log('[ChatView] 移除卡片:', cardId)
+
+  // 找到包含该卡片的消息（应该是最后一条助手消息）
+  const assistantMsg = messages.value.filter(m => m.role === 'assistant').pop()
+  if (!assistantMsg || !assistantMsg.embeds) return
+
+  // 从 embeds 中移除该卡片
+  const index = assistantMsg.embeds.findIndex(e => e.id === cardId)
+  if (index !== -1) {
+    assistantMsg.embeds.splice(index, 1)
+
+    // 从 content 中移除占位符
+    assistantMsg.content = assistantMsg.content.replace(`[CARD:${cardId}]`, '')
+
+    triggerRef(messages)
+    scrollToBottom()
+  }
+}
+
+const handleSend = async (userMessage: string, testMode: boolean = false, echoMode: boolean = false) => {
   // 防止并发请求
   if (isLoading.value) {
     console.warn('[ChatView] 请求正在进行中，忽略新消息')
@@ -148,15 +178,26 @@ const handleSend = async (userMessage: string, testMode: boolean = false) => {
       scrollToBottom()
     },
     () => {},
+    (card: any) => {
+      // 处理卡片事件
+      if (!collectedEmbeds.has(card.cardId)) {
+        collectedEmbeds.add(card.cardId)
+        if (!assistantMsg.embeds) assistantMsg.embeds = []
+        assistantMsg.embeds.push({
+          id: card.cardId,
+          type: 'card',
+          data: card
+        })
+      }
+      triggerRef(messages)
+      scrollToBottom()
+    },
     () => {
       assistantMsg.isStreaming = false
       isLoading.value = false
       currentStreamCloser = null
       triggerRef(messages)
       scrollToBottom()
-
-      console.log('[ChatView] Final embeds:', assistantMsg.embeds?.length || 0)
-      assistantMsg.embeds?.forEach(e => console.log('  -', e.type, e.id, 'title:', e.data.title))
     },
     (error: Error) => {
       assistantMsg.content += `\n[错误: ${error.message}]`
@@ -165,7 +206,7 @@ const handleSend = async (userMessage: string, testMode: boolean = false) => {
       currentStreamCloser = null
       triggerRef(messages)
     },
-    { testMode }
+    { testMode, echoMode }
   )
 }
 </script>

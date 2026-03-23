@@ -7,6 +7,26 @@ export interface ChartData {
   data: Record<string, number>
 }
 
+export interface CardData {
+  cardId: string
+  cardName: string
+  displayTitle: string
+  cardInfo: CardInfoItem[]
+  buttons: CardButton[]
+}
+
+export interface CardInfoItem {
+  key: string
+  label: string
+  value: string
+}
+
+export interface CardButton {
+  actionId: string
+  label: string
+  apiEndpoint?: string
+}
+
 export interface EmbedData {
   id: string
   type: 'chart' | 'table' | 'card' | 'image'
@@ -24,7 +44,7 @@ export interface Message {
 }
 
 export interface StreamEvent {
-  type: 'content' | 'chart' | 'end'
+  type: 'content' | 'chart' | 'card' | 'end'
   data?: any
 }
 
