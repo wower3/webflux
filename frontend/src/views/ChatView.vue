@@ -43,18 +43,22 @@ const scrollToBottom = () => {
 function parseEmbeds(content: string): { cleanContent: string, embeds: EmbedData[] } {
   const embeds: EmbedData[] = []
   const processedIds = new Set<string>()
-  const embedStart = '{"type": "'
+  const embedStart = '{"type":"'
   let startPos = content.indexOf(embedStart)
 
   while (startPos !== -1) {
     let braceDepth = 0
+    let bracketDepth = 0
     let pos = startPos
 
     while (pos < content.length) {
       if (content[pos] === '{') braceDepth++
       else if (content[pos] === '}') braceDepth--
+      else if (content[pos] === '[') bracketDepth++
+      else if (content[pos] === ']') bracketDepth--
 
-      if (braceDepth === 0 && pos > startPos) {
+      // 当括号和方括号都回到0时，表示完整的JSON
+      if (braceDepth === 0 && bracketDepth === 0 && pos > startPos) {
         const jsonStr = content.slice(startPos, pos + 1)
 
         try {

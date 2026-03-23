@@ -5,8 +5,57 @@
 import asyncio
 import json
 import os
+import re
 from typing import AsyncGenerator
 from pathlib import Path
+
+
+# 中文符号 → 英文符号映射
+SYMBOL_MAP = {
+    "：": ":",
+    "，": ",",
+    "【": "[",
+    "】": "]",
+    "｛": "{",
+    "｝": "}",
+    "《": "<",
+    "》": ">",
+    "；": ";",
+    "（": "(",
+    "）": ")",
+    "！": "!",
+    "？": "?",
+    # 中文引号 → 英文引号
+    "\u201c": '"',  # 左双引号 "
+    "\u201d": '"',  # 右双引号 "
+    "\u2018": "'",  # 左单引号 '
+    "\u2019": "'",  # 右单引号 '
+}
+
+
+def normalize_json_input(text: str) -> str:
+    """
+    1. 中文符号转英文
+    2. 标准化 JSON 格式（去除结构性空格）
+    """
+    # 步骤1：中文符号转英文
+    for cn, en in SYMBOL_MAP.items():
+        text = text.replace(cn, en)
+
+    # 步骤2：标准化 JSON 格式
+    # 将 "key" : value 或 "key": value 统一为 "key":value（冒号两侧无空格）
+    text = re.sub(r'("[^"]+")\s*:\s*', r'\1:', text)
+
+    # 将对象或数组前后的空格去除 {  content  } → {content}
+    text = re.sub(r'\{\s*', '{', text)
+    text = re.sub(r'\s*\}', '}', text)
+    text = re.sub(r'\[\s*', '[', text)
+    text = re.sub(r'\s*\]', ']', text)
+
+    # 数组元素之间的逗号后空格去除 [a, b] → [a,b]
+    text = re.sub(r',\s+', ',', text)
+
+    return text
 
 
 def format_sse_text(content: str) -> str:
@@ -88,21 +137,16 @@ async def generate_echo_stream(message: str) -> AsyncGenerator[str, None]:
         yield f"data: {json.dumps({'type': 'end', 'data': None}, ensure_ascii=False)}\n\n"
         return
 
-    # 检测是否是格式化的 JSON，如果是则压缩
+    # 统一处理：先标准化（中文符号转英文），然后原样发送
+    # 前端 parseEmbeds 会自动提取和解析 JSON
     trimmed = message.strip()
-    if trimmed.startswith('{') and '}' in trimmed:
-        try:
-            # 尝试解析为 JSON
-            parsed = json.loads(trimmed)
-            # 如果成功，重新序列化为紧凑格式
-            message = json.dumps(parsed, ensure_ascii=False)
-            print(f"[Echo] 压缩 JSON: {len(trimmed)} -> {len(message)} 字符")
-        except json.JSONDecodeError:
-            # 不是有效 JSON，保持原样
-            pass
+    print(f"[Echo] 收到消息: 长度={len(message)}, 前50字符={message[:50]}")
+
+    # 统一进行中文符号转英文
+    message = normalize_json_input(trimmed)
+    print(f"[Echo] 标准化后长度={len(message)}")
 
     # 按字符流式返回，模拟打字机效果
-    # 对于包含JSON的内容，前端 parseEmbeds 会自动解析图表
     for char in message:
         yield format_sse_text(char)
         await asyncio.sleep(0.01)  # 每个字符延迟30ms

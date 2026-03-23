@@ -4,7 +4,7 @@
       <el-input
         v-model="inputText"
         type="textarea"
-        :rows="1"
+        :rows="3"
         placeholder="给大模型发送消息..."
         @keydown.enter.exact="handleSend"
         :disabled="loading"
