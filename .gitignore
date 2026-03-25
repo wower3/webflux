@@ -28,6 +28,11 @@ dist/
 node_modules/
 */node_modules/
 
+# Python venv
+venv/
+.venv/
+env/
+
 # Maven
 .mvn/
 mvnw

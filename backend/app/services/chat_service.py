@@ -91,7 +91,7 @@ async def stream_text_by_length(
 
 
 async def generate_stream_from_file(
-    filename: str = "test_content.txt",
+    filename: str = "test_content_copy.txt",
     chunk_size: int = 15,
     delay: float = 0.2
 ) -> AsyncGenerator[str, None]:
