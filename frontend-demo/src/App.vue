@@ -5,7 +5,12 @@
       <header class="header">
         <div class="header-content">
           <div class="logo">
-            <i class="fa fa-bar-chart"></i>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3v18h18"/>
+              <path d="M18 17V9"/>
+              <path d="M13 17V5"/>
+              <path d="M8 17v-3"/>
+            </svg>
             <span>ChatChart Demo</span>
           </div>
         </div>
@@ -19,7 +24,9 @@
           </p>
           <div class="hero-actions">
             <button class="btn-primary" @click="openChat">
-              <i class="fa fa-comments"></i>
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
               开始对话
             </button>
           </div>
@@ -44,8 +51,6 @@ const openChat = () => {
 </script>
 
 <style>
-@import url("https://cdn.bootcdn.net/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css");
-
 * {
   margin: 0;
   padding: 0;
@@ -60,6 +65,13 @@ body {
   width: 100%;
   height: 100vh;
   overflow: hidden;
+}
+
+.icon {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .main-page {
@@ -94,9 +106,11 @@ body {
   color: #1f2937;
 }
 
-.logo i {
+.logo .icon {
   color: #667eea;
   font-size: 24px;
+  width: 24px;
+  height: 24px;
 }
 
 .main-content {

@@ -11,11 +11,16 @@
         ></div>
         <div class="sidebar-header">
           <div class="header-title">
-            <i class="fa fa-comments"></i>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
             <span>智能对话</span>
           </div>
           <button class="close-btn" @click="close">
-            <i class="fa fa-times"></i>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
           </button>
         </div>
         <div class="sidebar-content">
@@ -27,7 +32,9 @@
     <!-- 收起时的悬浮按钮 -->
     <transition name="fade">
       <button v-show="!isOpen" class="chat-toggle-btn" @click="open">
-        <i class="fa fa-comments"></i>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
         <span class="btn-text">AI助手</span>
       </button>
     </transition>
@@ -85,6 +92,13 @@ defineExpose({
 </script>
 
 <style scoped>
+.icon {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .chat-sidebar-container {
   position: fixed;
   top: 0;
@@ -193,10 +207,6 @@ defineExpose({
 .chat-toggle-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
-}
-
-.chat-toggle-btn i {
-  font-size: 18px;
 }
 
 .btn-text {

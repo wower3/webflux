@@ -2,7 +2,11 @@
   <div class="message-row">
     <div class="message-content" :class="{ 'user-message': role === 'user', 'ai-message': role === 'assistant' }">
       <div class="avatar" v-if="role === 'assistant'">
-        <i class="fa fa-cube"></i>
+        <svg class="avatar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+          <line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
       </div>
       <div class="message-bubble">
         <template v-for="(segment, index) in contentSegments" :key="segment.type === 'chart' ? segment.data?.id || `chart-${index}` : segment.type === 'card' ? segment.data?.cardId || `card-${index}` : `text-${index}`">
@@ -12,7 +16,10 @@
         </template>
       </div>
       <div class="avatar" v-if="role === 'user'">
-        <i class="fa fa-user"></i>
+        <svg class="avatar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
       </div>
     </div>
   </div>
@@ -109,7 +116,10 @@ const contentSegments = computed((): ContentSegment[] => {
 </script>
 
 <style scoped>
-@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css");
+.avatar-icon {
+  width: 18px;
+  height: 18px;
+}
 
 .message-row {
   padding: 16px 0;

@@ -12,7 +12,9 @@
         @update-card="handleUpdateCard"
       />
       <div v-if="messages.length === 0" class="empty-state">
-        <i class="fa fa-comments"></i>
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
         <p>开始对话吧！</p>
       </div>
     </div>
@@ -162,8 +164,9 @@ const handleSend = async (userMessage: string, testMode: boolean = false, echoMo
   color: #9ca3af;
 }
 
-.empty-state i {
-  font-size: 64px;
+.empty-state .empty-icon {
+  width: 64px;
+  height: 64px;
   margin-bottom: 16px;
 }
 

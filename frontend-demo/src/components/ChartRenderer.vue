@@ -11,7 +11,12 @@
       @mousedown="startResize"
       :class="{ 'is-resizing': isResizing }"
     >
-      <i class="fa fa-arrows-alt"></i>
+      <svg class="resize-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="15 3 21 3 21 9"/>
+        <polyline points="9 21 3 21 3 15"/>
+        <line x1="21" y1="3" x2="14" y2="10"/>
+        <line x1="3" y1="21" x2="10" y2="14"/>
+      </svg>
     </div>
   </div>
 </template>
@@ -173,14 +178,15 @@ watch(() => props.chart, () => {
   background: linear-gradient(135deg, transparent 50%, #667eea 50%);
 }
 
-.resize-handle i {
-  font-size: 10px;
+.resize-icon {
+  width: 10px;
+  height: 10px;
   color: #fff;
   opacity: 0.8;
 }
 
-.resize-handle:hover i,
-.resize-handle.is-resizing i {
+.resize-handle:hover .resize-icon,
+.resize-handle.is-resizing .resize-icon {
   opacity: 1;
 }
 </style>

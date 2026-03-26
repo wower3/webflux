@@ -10,7 +10,10 @@
         class="chat-textarea"
       ></textarea>
       <button @click="handleSend" :disabled="!inputMessage.trim() || loading" class="send-btn">
-        <i class="fa fa-paper-plane"></i>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
       </button>
     </div>
     <div class="input-options">
@@ -68,7 +71,12 @@ watch(inputMessage, () => {
 </script>
 
 <style scoped>
-@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css");
+.icon {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  vertical-align: middle;
+}
 
 .chat-input-container {
   border-top: 1px solid #e5e7eb;
