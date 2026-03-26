@@ -8,6 +8,7 @@ export interface Message {
   embeds?: EmbedData[]
   timestamp: number
   isStreaming?: boolean
+  isThinking?: boolean
 }
 
 export interface EmbedData {

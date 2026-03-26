@@ -18,7 +18,7 @@ async def chat(request: ChatRequest):
     if not request.message:
         raise HTTPException(status_code=400, detail="消息内容不能为空")
 
-    result = generate_chat_response(request.message)
+    result = await generate_chat_response(request.message)
 
     return ApiResponse(
         code=0,
@@ -64,7 +64,7 @@ async def chat_process(request: ChatRequest):
 
     直接返回处理后的消息，不生成额外响应
     """
-    result = process_message(request.message)
+    result = await process_message(request.message)
 
     return ApiResponse(
         code=0,
@@ -82,7 +82,7 @@ async def chat_echo(
 
     将用户输入的消息处理后返回
     """
-    result = process_message(message)
+    result = await process_message(message)
 
     return ApiResponse(
         code=0,

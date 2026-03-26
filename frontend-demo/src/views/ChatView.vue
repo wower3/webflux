@@ -11,7 +11,15 @@
         @remove-card="handleRemoveCard"
         @update-card="handleUpdateCard"
       />
-      <div v-if="messages.length === 0" class="empty-state">
+      <!-- 思考中的消息 -->
+      <ChatMessage
+        v-if="thinkingMessage"
+        :key="thinkingMessage.id"
+        :role="thinkingMessage.role"
+        :content="thinkingMessage.content"
+        :is-thinking="true"
+      />
+      <div v-if="messages.length === 0 && !thinkingMessage" class="empty-state">
         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
@@ -32,6 +40,7 @@ import type { Message, EmbedData, CardData } from '@/types'
 
 const messages = ref<Message[]>([])
 const isLoading = ref(false)
+const thinkingMessage = ref<Message | null>(null)
 const messagesRef = ref<HTMLElement>()
 
 let messageIdCounter = 0
@@ -87,6 +96,17 @@ const handleSend = async (userMessage: string, testMode: boolean = false, echoMo
 
   isLoading.value = true
 
+  // 添加思考中的消息
+  thinkingMessage.value = {
+    id: `thinking_${messageIdCounter++}`,
+    role: 'assistant',
+    content: '...',
+    charts: [],
+    timestamp: Date.now(),
+    isThinking: true
+  }
+  scrollToBottom()
+
   try {
     let content = ''
     let embeds: EmbedData[] = []
@@ -111,7 +131,8 @@ const handleSend = async (userMessage: string, testMode: boolean = false, echoMo
     content = parseResult.cleanContent
     embeds = parseResult.embeds
 
-    // 添加助手消息
+    // 移除思考消息，添加助手消息
+    thinkingMessage.value = null
     const assistantMsg: Message = {
       id: `msg_${messageIdCounter++}`,
       role: 'assistant',
@@ -125,6 +146,7 @@ const handleSend = async (userMessage: string, testMode: boolean = false, echoMo
     scrollToBottom()
   } catch (error) {
     console.error('发送消息失败:', error)
+    thinkingMessage.value = null
     const errorMsg: Message = {
       id: `msg_${messageIdCounter++}`,
       role: 'assistant',

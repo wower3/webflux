@@ -2,6 +2,8 @@
 """
 聊天服务 - 非流式版本
 """
+import asyncio
+import random
 import json
 import re
 from pathlib import Path
@@ -48,7 +50,7 @@ def normalize_json_input(text: str) -> str:
     return text
 
 
-def process_message(message: str) -> dict:
+async def process_message(message: str) -> dict:
     """
     处理用户消息，返回处理后的内容
 
@@ -57,7 +59,13 @@ def process_message(message: str) -> dict:
 
     Returns:
         dict: 包含原始消息和处理后消息的字典
+
+    模拟 AI 思考时间：随机延迟 1-10 秒
     """
+    # ⭐ 随机延迟 1-10 秒，模拟 AI 思考
+    delay = random.uniform(1, 10)
+    await asyncio.sleep(delay)
+
     if not message:
         return {
             "original": "",
@@ -103,7 +111,7 @@ def read_test_file(filename: str = "test_content.txt") -> dict:
     }
 
 
-def generate_chat_response(message: str) -> dict:
+async def generate_chat_response(message: str) -> dict:
     """
     生成聊天响应（模拟）
 
@@ -112,7 +120,13 @@ def generate_chat_response(message: str) -> dict:
 
     Returns:
         dict: 响应内容
+
+    模拟 AI 思考时间：随机延迟 1-10 秒
     """
+    # ⭐ 随机延迟 1-10 秒，模拟 AI 思考
+    delay = random.uniform(1, 10)
+    await asyncio.sleep(delay)
+
     # 简单的响应逻辑
     if "卡片" in message or "card" in message.lower():
         response = """好的，我为您生成了一个可编辑的卡片：

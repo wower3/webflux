@@ -1,5 +1,5 @@
 <template>
-  <div class="message-row">
+  <div class="message-row" :class="{ 'thinking': isThinking }">
     <div class="message-content" :class="{ 'user-message': role === 'user', 'ai-message': role === 'assistant' }">
       <div class="avatar" v-if="role === 'assistant'">
         <svg class="avatar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -8,11 +8,16 @@
           <line x1="12" y1="22.08" x2="12" y2="12"/>
         </svg>
       </div>
-      <div class="message-bubble">
-        <template v-for="(segment, index) in contentSegments" :key="segment.type === 'chart' ? segment.data?.id || `chart-${index}` : segment.type === 'card' ? segment.data?.cardId || `card-${index}` : `text-${index}`">
-          <MarkdownRenderer v-if="segment.type === 'text'" :content="segment.content || ''" />
-          <ChartRenderer v-else-if="segment.type === 'chart' && segment.data" :chart="segment.data" />
-          <CardRenderer v-else-if="segment.type === 'card' && segment.data" :card="segment.data" @remove="handleRemoveCard" @update="handleUpdateCard" />
+      <div class="message-bubble" :class="{ 'thinking-bubble': isThinking }">
+        <!-- 思考状态 -->
+        <span class="dots" v-if="isThinking">...</span>
+        <!-- 正常内容 -->
+        <template v-else>
+          <template v-for="(segment, index) in contentSegments" :key="segment.type === 'chart' ? segment.data?.id || `chart-${index}` : segment.type === 'card' ? segment.data?.cardId || `card-${index}` : `text-${index}`">
+            <MarkdownRenderer v-if="segment.type === 'text'" :content="segment.content || ''" />
+            <ChartRenderer v-else-if="segment.type === 'chart' && segment.data" :chart="segment.data" />
+            <CardRenderer v-else-if="segment.type === 'card' && segment.data" :card="segment.data" @remove="handleRemoveCard" @update="handleUpdateCard" />
+          </template>
         </template>
       </div>
       <div class="avatar" v-if="role === 'user'">
@@ -38,6 +43,7 @@ const props = defineProps<{
   charts?: any[]
   embeds?: EmbedData[]
   isStreaming?: boolean
+  isThinking?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -62,7 +68,7 @@ interface ContentSegment {
 const PLACEHOLDER_PATTERN = /\[([A-Z]+):([^\]]+)\]/g
 
 const contentSegments = computed((): ContentSegment[] => {
-  if (props.role === 'user') {
+  if (props.role === 'user' || props.isThinking) {
     return [{ type: 'text', content: props.content }]
   }
 
@@ -181,6 +187,29 @@ const contentSegments = computed((): ContentSegment[] => {
   background: #f3f4f6;
   color: #1f2937;
   border-bottom-left-radius: 4px;
+}
+
+/* 思考状态样式 */
+.thinking .message-bubble.thinking-bubble {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  min-width: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 闪烁动画 */
+.dots {
+  animation: blink 1.5s infinite;
+  font-size: 48px;
+  font-weight: 300;
+  letter-spacing: 8px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
 }
 
 .user-message .message-bubble :deep(a) {
