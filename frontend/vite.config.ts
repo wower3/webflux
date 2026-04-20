@@ -18,7 +18,17 @@ export default defineConfig({
         ws: true,
         configure: (proxy) => {
           proxy.on('proxyRes', (_proxyRes) => {
-            // 禁用缓冲以支持流式响应
+            delete _proxyRes.headers['content-length']
+            _proxyRes.headers['Transfer-Encoding'] = 'chunked'
+          })
+        }
+      },
+      '/api/ai': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        ws: true,
+        configure: (proxy) => {
+          proxy.on('proxyRes', (_proxyRes) => {
             delete _proxyRes.headers['content-length']
             _proxyRes.headers['Transfer-Encoding'] = 'chunked'
           })

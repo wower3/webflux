@@ -41,6 +41,14 @@ public class RouterConfig {
                 .GET("/api/chat/echo/stream", request -> chatController.echoStreamGet(request))
                 .POST("/api/chat/echo/stream", request -> chatController.echoStreamPost(request))
 
+                // AI 流式接口（调用外部AI模型）
+                .GET("/api/ai/chat/stream", request -> chatController.aiChatStreamGet(request))
+                .POST("/api/ai/chat/stream", request -> chatController.aiChatStreamPost(request))
+
+                // AI Mock 流式接口
+                .GET("/api/ai/chat/mock/stream", request -> chatController.aiMockStreamGet(request))
+                .POST("/api/ai/chat/mock/stream", request -> chatController.aiMockStreamPost(request))
+
                 .build();
     }
 }

@@ -26,3 +26,13 @@ management:
   endpoint:
     health:
       show-details: always
+
+# AI 服务配置
+ai-service:
+  url: http://aiml-pub.aisp.test.abc/agent-api/workflow-agent-1-a852be77
+  health-check-api: /chatabc/health_check
+  init-session-api: /chatabc/init_session
+  upload-file-api: /chatabc/upload_file
+  chat-api: /chatabc/chat
+  download-api: /chatabc/download_file
+  timeout: 90000

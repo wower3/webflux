@@ -1,7 +1,9 @@
 package com.chat.chart.controller;
 
 import com.chat.chart.model.ChatRequest;
+import com.chat.chart.service.AiChatService;
 import com.chat.chart.service.ChatService;
+import com.chat.chart.service.MockAiChatService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,10 +30,14 @@ public class ChatController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
     private final ChatService chatService;
+    private final AiChatService aiChatService;
+    private final MockAiChatService mockAiChatService;
     private final ObjectMapper objectMapper;
 
-    public ChatController(ChatService chatService) {
+    public ChatController(ChatService chatService, AiChatService aiChatService, MockAiChatService mockAiChatService) {
         this.chatService = chatService;
+        this.aiChatService = aiChatService;
+        this.mockAiChatService = mockAiChatService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -147,6 +153,88 @@ public class ChatController {
                     log.info("[POST /api/chat/echo/stream] message={}", chatRequest.getMessage());
 
                     Flux<ServerSentEvent<String>> stream = chatService.generateEchoStream(chatRequest.getMessage());
+
+                    return ServerResponse.ok()
+                            .contentType(MediaType.parseMediaType("text/event-stream"))
+                            .header("Cache-Control", "no-cache")
+                            .header("Connection", "keep-alive")
+                            .header("X-Accel-Buffering", "no")
+                            .body(stream, ServerSentEvent.class);
+                });
+    }
+
+    // ==================== AI 流式接口 ====================
+
+    /**
+     * AI 流式聊天接口（GET）
+     * 调用外部 AI 模型，透传流式响应
+     */
+    public Mono<ServerResponse> aiChatStreamGet(ServerRequest request) {
+        String message = request.queryParam("message").orElse("");
+        String sessionId = request.queryParam("session_id").orElse("default");
+
+        log.info("[GET /api/ai/chat/stream] message={}, sessionId={}", message, sessionId);
+
+        Flux<ServerSentEvent<String>> stream = aiChatService.chatStream(message, sessionId);
+
+        return ServerResponse.ok()
+                .contentType(MediaType.parseMediaType("text/event-stream"))
+                .header("Cache-Control", "no-cache")
+                .header("Connection", "keep-alive")
+                .header("X-Accel-Buffering", "no")
+                .body(stream, ServerSentEvent.class);
+    }
+
+    /**
+     * AI 流式聊天接口（POST）
+     * 调用外部 AI 模型，透传流式响应
+     */
+    public Mono<ServerResponse> aiChatStreamPost(ServerRequest request) {
+        return request.body(BodyExtractors.toMono(ChatRequest.class))
+                .flatMap(chatRequest -> {
+                    String sessionId = chatRequest.getSessionId() != null ? chatRequest.getSessionId() : "default";
+                    log.info("[POST /api/ai/chat/stream] message={}, sessionId={}", chatRequest.getMessage(), sessionId);
+
+                    Flux<ServerSentEvent<String>> stream = aiChatService.chatStream(chatRequest.getMessage(), sessionId);
+
+                    return ServerResponse.ok()
+                            .contentType(MediaType.parseMediaType("text/event-stream"))
+                            .header("Cache-Control", "no-cache")
+                            .header("Connection", "keep-alive")
+                            .header("X-Accel-Buffering", "no")
+                            .body(stream, ServerSentEvent.class);
+                });
+    }
+
+    /**
+     * AI Mock 流式接口（GET）
+     * 返回模拟数据，用于前端调试
+     */
+    public Mono<ServerResponse> aiMockStreamGet(ServerRequest request) {
+        String message = request.queryParam("message").orElse("");
+
+        log.info("[GET /api/ai/chat/mock/stream] message={}", message);
+
+        Flux<ServerSentEvent<String>> stream = mockAiChatService.mockChatStream(message);
+
+        return ServerResponse.ok()
+                .contentType(MediaType.parseMediaType("text/event-stream"))
+                .header("Cache-Control", "no-cache")
+                .header("Connection", "keep-alive")
+                .header("X-Accel-Buffering", "no")
+                .body(stream, ServerSentEvent.class);
+    }
+
+    /**
+     * AI Mock 流式接口（POST）
+     * 返回模拟数据，用于前端调试
+     */
+    public Mono<ServerResponse> aiMockStreamPost(ServerRequest request) {
+        return request.body(BodyExtractors.toMono(ChatRequest.class))
+                .flatMap(chatRequest -> {
+                    log.info("[POST /api/ai/chat/mock/stream] message={}", chatRequest.getMessage());
+
+                    Flux<ServerSentEvent<String>> stream = mockAiChatService.mockChatStream(chatRequest.getMessage());
 
                     return ServerResponse.ok()
                             .contentType(MediaType.parseMediaType("text/event-stream"))

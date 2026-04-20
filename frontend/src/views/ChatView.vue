@@ -20,13 +20,16 @@
 import { ref, nextTick, triggerRef } from 'vue'
 import ChatMessage from '@/components/ChatMessage.vue'
 import ChatInput from '@/components/ChatInput.vue'
-import { sendChatStream } from '@/api/chat'
+import { sendChatStream, sendAiChatStream, sendMockAiChatStream } from '@/api/chat'
 import type { Message, EmbedData } from '@/types'
+
+type BackendType = 'python' | 'java-ai' | 'java-mock'
 
 const messages = ref<Message[]>([])
 const isLoading = ref(false)
 const messagesRef = ref<HTMLElement>()
 let currentStreamCloser: (() => void) | null = null
+const currentBackend = ref<BackendType>('java-mock')
 
 triggerRef(messages)
 
@@ -142,13 +145,11 @@ const handleUpdateCard = (card: any) => {
 }
 
 const handleSend = async (userMessage: string, testMode: boolean = false, echoMode: boolean = false) => {
-  // 防止并发请求
   if (isLoading.value) {
     console.warn('[ChatView] 请求正在进行中，忽略新消息')
     return
   }
 
-  // 清理之前的流
   if (currentStreamCloser) {
     currentStreamCloser()
     currentStreamCloser = null
@@ -181,55 +182,87 @@ const handleSend = async (userMessage: string, testMode: boolean = false, echoMo
   let rawContent = ''
   const collectedEmbeds = new Set<string>()
 
-  currentStreamCloser = sendChatStream(
-    userMessage,
-    (content: string) => {
-      rawContent += content
-      const { cleanContent, embeds } = parseEmbeds(rawContent)
-      assistantMsg.content = cleanContent
+  const contentCallback = (content: string) => {
+    rawContent += content
+    const { cleanContent, embeds } = parseEmbeds(rawContent)
+    assistantMsg.content = cleanContent
 
-      for (const embed of embeds) {
-        if (!collectedEmbeds.has(embed.id)) {
-          collectedEmbeds.add(embed.id)
-          if (!assistantMsg.embeds) assistantMsg.embeds = []
-          assistantMsg.embeds.push(embed)
-        }
-      }
-
-      triggerRef(messages)
-      scrollToBottom()
-    },
-    () => {},
-    (card: any) => {
-      // 处理卡片事件
-      if (!collectedEmbeds.has(card.cardId)) {
-        collectedEmbeds.add(card.cardId)
+    for (const embed of embeds) {
+      if (!collectedEmbeds.has(embed.id)) {
+        collectedEmbeds.add(embed.id)
         if (!assistantMsg.embeds) assistantMsg.embeds = []
-        assistantMsg.embeds.push({
-          id: card.cardId,
-          type: 'card',
-          data: card
-        })
+        assistantMsg.embeds.push(embed)
       }
-      triggerRef(messages)
-      scrollToBottom()
-    },
-    () => {
-      assistantMsg.isStreaming = false
-      isLoading.value = false
-      currentStreamCloser = null
-      triggerRef(messages)
-      scrollToBottom()
-    },
-    (error: Error) => {
-      assistantMsg.content += `\n[错误: ${error.message}]`
-      assistantMsg.isStreaming = false
-      isLoading.value = false
-      currentStreamCloser = null
-      triggerRef(messages)
-    },
-    { testMode, echoMode }
-  )
+    }
+
+    triggerRef(messages)
+    scrollToBottom()
+  }
+
+  const cardCallback = (card: any) => {
+    if (!collectedEmbeds.has(card.cardId)) {
+      collectedEmbeds.add(card.cardId)
+      if (!assistantMsg.embeds) assistantMsg.embeds = []
+      assistantMsg.embeds.push({
+        id: card.cardId,
+        type: 'card',
+        data: card
+      })
+    }
+    triggerRef(messages)
+    scrollToBottom()
+  }
+
+  const endCallback = () => {
+    assistantMsg.isStreaming = false
+    isLoading.value = false
+    currentStreamCloser = null
+    triggerRef(messages)
+    scrollToBottom()
+  }
+
+  const errorCallback = (error: Error) => {
+    assistantMsg.content += `\n[错误: ${error.message}]`
+    assistantMsg.isStreaming = false
+    isLoading.value = false
+    currentStreamCloser = null
+    triggerRef(messages)
+  }
+
+  console.log('[ChatView] 当前后端:', currentBackend.value)
+
+  switch (currentBackend.value) {
+    case 'java-ai':
+      currentStreamCloser = sendAiChatStream(userMessage, {
+        onContent: contentCallback,
+        onChart: () => {},
+        onCard: cardCallback,
+        onEnd: endCallback,
+        onError: errorCallback
+      })
+      break
+
+    case 'java-mock':
+      currentStreamCloser = sendMockAiChatStream(userMessage, {
+        onContent: contentCallback,
+        onChart: () => {},
+        onCard: cardCallback,
+        onEnd: endCallback,
+        onError: errorCallback
+      })
+      break
+
+    default: // python
+      currentStreamCloser = sendChatStream(
+        userMessage,
+        contentCallback,
+        () => {},
+        cardCallback,
+        endCallback,
+        errorCallback,
+        { testMode, echoMode }
+      )
+  }
 }
 </script>
 
