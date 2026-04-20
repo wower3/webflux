@@ -1,0 +1,28 @@
+# Chat Chart API 配置文件
+server:
+  port: 8080
+  shutdown: graceful
+
+spring:
+  application:
+    name: chat-chart-api
+  codec:
+    max-in-memory-size: 10MB
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.chat.chart: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

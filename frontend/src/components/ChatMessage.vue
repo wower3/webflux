@@ -8,7 +8,7 @@
         <template v-for="(segment, index) in contentSegments" :key="segment.type === 'chart' ? segment.data?.id || `chart-${index}` : segment.type === 'card' ? segment.data?.cardId || `card-${index}` : `text-${index}`">
           <MarkdownRenderer v-if="segment.type === 'text'" :content="segment.content || ''" />
           <ChartRenderer v-else-if="segment.type === 'chart' && segment.data" :chart="segment.data as ChartData" />
-          <CardRenderer v-else-if="segment.type === 'card' && segment.data" :card="segment.data as CardData" @remove="handleRemoveCard" />
+          <CardRenderer v-else-if="segment.type === 'card' && segment.data" :card="segment.data as CardData" @remove="handleRemoveCard" @update="handleUpdateCard" />
         </template>
         <span v-if="isStreaming" class="cursor">|</span>
       </div>
@@ -36,10 +36,15 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   removeCard: [cardId: string]
+  updateCard: [card: CardData]
 }>()
 
 const handleRemoveCard = (cardId: string) => {
   emit('removeCard', cardId)
+}
+
+const handleUpdateCard = (card: CardData) => {
+  emit('updateCard', card)
 }
 
 interface ContentSegment {
@@ -105,8 +110,6 @@ const contentSegments = computed((): ContentSegment[] => {
 </script>
 
 <style scoped>
-@import url("https://cdn.bootcdn.net/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css");
-
 .message-row {
   padding: 16px 0;
 }

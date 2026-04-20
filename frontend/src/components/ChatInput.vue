@@ -50,8 +50,6 @@ const handleSend = () => {
 </script>
 
 <style scoped>
-@import url("https://cdn.bootcdn.net/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css");
-
 .input-container {
   border-top: 1px solid #e5e7eb;
   background-color: #ffffff;

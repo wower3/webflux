@@ -9,6 +9,7 @@ import type { ChartData } from '@/types'
 export interface ParseResult {
   content: string        // 可显示的内容（已移除完整JSON）
   charts: ChartData[]    // 解析出的图表数据
+  cards: any[]           // 解析出的卡片数据
   hasPending: boolean    // 是否有未完成的JSON正在缓存
 }
 
@@ -16,6 +17,7 @@ export class StreamJsonParser {
   private buffer = ''           // 接收缓冲区
   private displayText = ''      // 已确认可显示的文本
   private charts: ChartData[] = []  // 解析出的图表
+  private cards: any[] = []     // 解析出的卡片
   private braceDepth = 0        // 花括号深度
   private inJson = false        // 是否正在解析JSON
   private jsonStartPos = -1     // JSON起始位置（在buffer中的索引）
@@ -23,6 +25,16 @@ export class StreamJsonParser {
 
   // 图表JSON开头标识
   private readonly CHART_JSON_START = '{"type":"chart"'
+  // 卡片JSON开头标识
+  private readonly CARD_JSON_START = '{"type":"card"'
+
+  /**
+   * 生成唯一 ID
+   * 格式: {prefix}_{timestamp}_{random}
+   */
+  private generateId(prefix: string): string {
+    return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  }
 
   /**
    * 追加新的文本内容
@@ -34,15 +46,27 @@ export class StreamJsonParser {
   }
 
   /**
-   * 处理缓冲区，查找并提取完整的图表JSON
+   * 处理缓冲区，查找并提取完整的图表/卡片JSON
    */
   private processBuffer(): void {
     let i = this.processedPos  // 从上次处理位置继续
 
     while (i < this.buffer.length) {
       if (!this.inJson) {
-        // 不在JSON模式，查找图表JSON开头
-        const startIndex = this.buffer.indexOf(this.CHART_JSON_START, i)
+        // 不在JSON模式，查找图表或卡片JSON开头
+        const chartIndex = this.buffer.indexOf(this.CHART_JSON_START, i)
+        const cardIndex = this.buffer.indexOf(this.CARD_JSON_START, i)
+
+        // 找到最早的 JSON 开头
+        let startIndex = -1
+        if (chartIndex !== -1 && cardIndex !== -1) {
+          startIndex = Math.min(chartIndex, cardIndex)
+        } else if (chartIndex !== -1) {
+          startIndex = chartIndex
+        } else if (cardIndex !== -1) {
+          startIndex = cardIndex
+        }
+
         if (startIndex !== -1) {
           // 找到JSON开头，之前的文本可以显示
           this.displayText += this.buffer.slice(i, startIndex)
@@ -75,8 +99,8 @@ export class StreamJsonParser {
         if (this.braceDepth === 0) {
           const jsonStr = this.buffer.slice(this.jsonStartPos, i)
 
-          // 尝试解析JSON
-          if (this.tryParseChart(jsonStr)) {
+          // 尝试解析JSON（图表或卡片）
+          if (this.tryParseEmbed(jsonStr)) {
             // 解析成功，继续处理剩余内容
             this.buffer = this.buffer.slice(i)
             this.processedPos = 0
@@ -106,7 +130,7 @@ export class StreamJsonParser {
       // 验证是否是图表数据
       if (data.type === 'chart' && data.subtype) {
         this.charts.push({
-          id: data.chartId || `chart_${Date.now()}_${this.charts.length}`,
+          id: this.generateId('chart'),  // 自动生成 ID，不使用后端的 chartId
           type: data.subtype,
           title: data.title || '',
           data: data.data || {}
@@ -117,6 +141,35 @@ export class StreamJsonParser {
       // JSON解析失败，可能还没接收完整
     }
     return false
+  }
+
+  /**
+   * 尝试解析卡片JSON
+   */
+  private tryParseCard(jsonStr: string): boolean {
+    try {
+      const data = JSON.parse(jsonStr)
+
+      // 验证是否是卡片数据
+      if (data.type === 'card' && data.cardName) {
+        // 自动生成 cardId
+        this.cards.push({
+          ...data,
+          cardId: this.generateId('card')
+        })
+        return true
+      }
+    } catch (e) {
+      // JSON解析失败，可能还没接收完整
+    }
+    return false
+  }
+
+  /**
+   * 尝试解析嵌入数据（图表或卡片）
+   */
+  private tryParseEmbed(jsonStr: string): boolean {
+    return this.tryParseChart(jsonStr) || this.tryParseCard(jsonStr)
   }
 
   /**
@@ -136,6 +189,7 @@ export class StreamJsonParser {
     return {
       content,
       charts: [...this.charts],
+      cards: [...this.cards],
       hasPending: this.inJson
     }
   }
@@ -147,6 +201,7 @@ export class StreamJsonParser {
     this.buffer = ''
     this.displayText = ''
     this.charts = []
+    this.cards = []
     this.braceDepth = 0
     this.inJson = false
     this.jsonStartPos = -1
@@ -158,6 +213,13 @@ export class StreamJsonParser {
    */
   getCharts(): ChartData[] {
     return [...this.charts]
+  }
+
+  /**
+   * 获取当前所有解析出的卡片
+   */
+  getCards(): any[] {
+    return [...this.cards]
   }
 
   /**

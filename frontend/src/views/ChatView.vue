@@ -9,6 +9,7 @@
         :embeds="msg.embeds"
         :is-streaming="msg.isStreaming"
         @remove-card="handleRemoveCard"
+        @update-card="handleUpdateCard"
       />
     </div>
     <ChatInput @send="handleSend" v-model:loading="isLoading" />
@@ -117,6 +118,23 @@ const handleRemoveCard = (cardId: string) => {
 
     // 从 content 中移除占位符
     assistantMsg.content = assistantMsg.content.replace(`[CARD:${cardId}]`, '')
+
+    triggerRef(messages)
+    scrollToBottom()
+  }
+}
+
+const handleUpdateCard = (card: any) => {
+  console.log('[ChatView] 更新卡片:', card)
+
+  // 找到包含该卡片的消息（应该是最后一条助手消息）
+  const assistantMsg = messages.value.filter(m => m.role === 'assistant').pop()
+  if (!assistantMsg || !assistantMsg.embeds) return
+
+  // 更新 embeds 中的卡片
+  const index = assistantMsg.embeds.findIndex(e => e.id === card.cardId)
+  if (index !== -1) {
+    assistantMsg.embeds[index].data = card
 
     triggerRef(messages)
     scrollToBottom()

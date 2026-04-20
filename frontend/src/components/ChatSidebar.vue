@@ -94,8 +94,6 @@ defineExpose({
 </script>
 
 <style scoped>
-@import url("https://cdn.bootcdn.net/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css");
-
 .chat-sidebar-container {
   position: fixed;
   top: 0;

@@ -45,6 +45,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   remove: [cardId: string]
+  update: [card: CardData]
 }>()
 
 const isEditing = ref(false)
@@ -73,7 +74,7 @@ const saveEdit = () => {
     }))
   }
   console.log('[CardRenderer] 保存编辑:', updatedCard)
-  // TODO: 更新卡片数据
+  emit('update', updatedCard)
   isEditing.value = false
 }
 
