@@ -1,5 +1,9 @@
 <template>
-  <div class="markdown-renderer" v-html="renderedHtml"></div>
+  <div class="markdown-renderer">
+    <!-- 流式时显示纯文本，结束时显示解析后的HTML -->
+    <div v-if="isStreaming" class="raw-text">{{ content }}</div>
+    <div v-else v-html="renderedHtml"></div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -9,14 +13,15 @@ import { computed } from 'vue'
 
 const props = defineProps<{
   content: string
+  isStreaming?: boolean
 }>()
 
 // 配置 markdown-it
 const md = new MarkdownIt({
-  html: false,         // 禁用 HTML 标签
-  breaks: true,        // 转换 \n 为 <br>
-  linkify: true,       // 自动转换 URL 为链接
-  typographer: true,   // 启用引号美化
+  html: false,
+  breaks: true,
+  linkify: true,
+  typographer: true,
   highlight: function (str: string, lang: string) {
     if (lang && hljs.getLanguage(lang)) {
       try {
@@ -27,8 +32,9 @@ const md = new MarkdownIt({
   }
 })
 
+// 只在非流式状态时解析
 const renderedHtml = computed(() => {
-  if (!props.content) return ''
+  if (props.isStreaming || !props.content) return ''
   return md.render(props.content)
 })
 </script>
@@ -37,6 +43,11 @@ const renderedHtml = computed(() => {
 .markdown-renderer {
   line-height: 1.6;
   font-size: 15px;
+  word-wrap: break-word;
+}
+
+.raw-text {
+  white-space: pre-wrap;
   word-wrap: break-word;
 }
 

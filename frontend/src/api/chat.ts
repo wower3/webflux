@@ -17,7 +17,7 @@ export function sendChatStream(
   console.log('[Chat API] Starting stream, message:', message, 'testMode:', options?.testMode, 'echoMode:', options?.echoMode)
 
   // 直接访问后端，绕过Vite代理
-  const baseUrl = 'http://localhost:8080'
+  const baseUrl = 'http://localhost:8000'
   const isEcho = options?.echoMode
   const endpoint = isEcho ? '/api/chat/echo/stream' : '/api/chat/stream'
   const testParam = options?.testMode ? '&test=true' : ''
@@ -85,7 +85,7 @@ export function sendChatStream(
  * 发送普通聊天请求（非流式）
  */
 export async function sendChat(request: ChatRequest) {
-  const response = await fetch('http://localhost:8080/api/chat', {
+  const response = await fetch('http://localhost:8000/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request)

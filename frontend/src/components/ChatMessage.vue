@@ -6,7 +6,7 @@
       </div>
       <div class="message-bubble">
         <template v-for="(segment, index) in contentSegments" :key="segment.type === 'chart' ? segment.data?.id || `chart-${index}` : segment.type === 'card' ? segment.data?.cardId || `card-${index}` : `text-${index}`">
-          <MarkdownRenderer v-if="segment.type === 'text'" :content="segment.content || ''" />
+          <MarkdownRenderer v-if="segment.type === 'text'" :content="segment.content || ''" :isStreaming="isStreaming" />
           <ChartRenderer v-else-if="segment.type === 'chart' && segment.data" :chart="segment.data as ChartData" />
           <CardRenderer v-else-if="segment.type === 'card' && segment.data" :card="segment.data as CardData" @remove="handleRemoveCard" @update="handleUpdateCard" />
         </template>
