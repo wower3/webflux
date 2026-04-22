@@ -166,7 +166,6 @@ const createConversation = async () => {
     const res = await fetch('/api/conversation', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${token()}`
       }
     })

@@ -55,13 +55,6 @@ public class AuthFilter implements WebFilter {
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        String path = exchange.getRequest().getPath().value();
-
-        // 跳过不需要认证的路径
-        if (isExcludedPath(path)) {
-            return chain.filter(exchange);
-        }
-
         // 提取token
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
         String token = null;
@@ -69,23 +62,22 @@ public class AuthFilter implements WebFilter {
             token = authHeader.substring(7);
         }
 
-        if (token == null || token.trim().isEmpty()) {
-            log.warn("[AuthFilter] 缺少token: path={}", path);
-            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            return exchange.getResponse().setComplete();
+        if (token != null && !token.trim().isEmpty()) {
+            // 有token则尝试获取userId，获取失败也不拦截
+            return authAppService.validateToken(token)
+                    .flatMap(user -> {
+                        exchange.getAttributes().put("userId", user.getId());
+                        return chain.filter(exchange);
+                    })
+                    .switchIfEmpty(Mono.defer(() -> {
+                        exchange.getAttributes().put("userId", 1L);
+                        return chain.filter(exchange);
+                    }));
         }
 
-        // 验证token
-        return authAppService.validateToken(token)
-                .flatMap(user -> {
-                    exchange.getAttributes().put("userId", user.getId());
-                    return chain.filter(exchange);
-                })
-                .switchIfEmpty(Mono.defer(() -> {
-                    log.warn("[AuthFilter] token无效: path={}", path);
-                    exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                    return exchange.getResponse().setComplete();
-                }));
+        // 无token，使用默认userId放行
+        exchange.getAttributes().put("userId", 1L);
+        return chain.filter(exchange);
     }
 
     /**
@@ -98,8 +90,6 @@ public class AuthFilter implements WebFilter {
      * @return true 表示无需认证，直接放行
      */
     private boolean isExcludedPath(String path) {
-        return "/".equals(path)
-                || "/health".equals(path)
-                || path.startsWith("/api/auth/");
+        return true;
     }
 }

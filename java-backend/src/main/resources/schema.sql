@@ -1,6 +1,6 @@
 -- Chat Chart 数据库初始化脚本
 
-CREATE TABLE IF NOT EXISTS `user` (
+CREATE TABLE IF NOT EXISTS ``user`` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '用户ID',
     `username` VARCHAR(64) NOT NULL COMMENT '用户名',
     `password` VARCHAR(128) NOT NULL COMMENT '密码(SHA-256)',
@@ -16,8 +16,7 @@ CREATE TABLE IF NOT EXISTS `conversation` (
     `user_id` BIGINT NOT NULL COMMENT '用户ID',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`conversation_id`),
-    KEY `idx_user_id` (`user_id`),
-    CONSTRAINT `fk_conversation_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+    KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='会话表';
 
 CREATE TABLE IF NOT EXISTS `chat_message` (
@@ -29,6 +28,5 @@ CREATE TABLE IF NOT EXISTS `chat_message` (
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`request_id`, `role`),
     KEY `idx_conversation` (`conversation_id`, `created_at`),
-    KEY `idx_request_id_created` (`request_id`, `created_at`),
-    CONSTRAINT `fk_message_conversation` FOREIGN KEY (`conversation_id`) REFERENCES `conversation` (`conversation_id`) ON DELETE CASCADE
+    KEY `idx_request_id_created` (`request_id`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天消息表';

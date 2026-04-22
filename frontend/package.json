@@ -13,8 +13,7 @@
     "element-plus": "2.7.6",
     "echarts": "5.4.3",
     "highlight.js": "11.9.0",
-    "markdown-it": "14.1.1",
-    "lodash-es": "4.17.23"
+    "markdown-it": "14.1.1"
   },
   "devDependencies": {
     "@types/node": "18.19.130",

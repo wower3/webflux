@@ -52,7 +52,7 @@ public class UserGatewayImpl implements UserGateway {
     public User findByUsername(String username) {
         try {
             return jdbcTemplate.queryForObject(
-                    "SELECT id, username, password, token, created_at FROM chat_user WHERE username = ?",
+                    "SELECT id, username, password, token, created_at FROM `user` WHERE username = ?",
                     new Object[]{username},
                     new UserRowMapper()
             );
@@ -75,7 +75,7 @@ public class UserGatewayImpl implements UserGateway {
     public User findByToken(String token) {
         try {
             return jdbcTemplate.queryForObject(
-                    "SELECT id, username, password, token, created_at FROM chat_user WHERE token = ?",
+                    "SELECT id, username, password, token, created_at FROM `user` WHERE token = ?",
                     new Object[]{token},
                     new UserRowMapper()
             );
@@ -98,7 +98,7 @@ public class UserGatewayImpl implements UserGateway {
     public void saveUser(String username, String password) {
         String hashedPassword = sha256(password);
         jdbcTemplate.update(
-                "INSERT INTO chat_user (username, password, created_at) VALUES (?, ?, ?)",
+                "INSERT INTO `user` (username, password, created_at) VALUES (?, ?, ?)",
                 username, hashedPassword, LocalDateTime.now()
         );
     }
@@ -112,7 +112,7 @@ public class UserGatewayImpl implements UserGateway {
     @Override
     public void updateToken(Long userId, String token) {
         jdbcTemplate.update(
-                "UPDATE chat_user SET token = ? WHERE id = ?",
+                "UPDATE `user` SET token = ? WHERE id = ?",
                 token, userId
         );
     }
