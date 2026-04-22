@@ -1,4 +1,3 @@
-# Chat Chart API 配置文件
 server:
   port: 8080
   shutdown: graceful
@@ -8,8 +7,15 @@ spring:
     name: chat-chart-api
   codec:
     max-in-memory-size: 10MB
+  datasource:
+    url: jdbc:mysql://localhost:3306/chat_chart?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
 
-# 日志配置
 logging:
   level:
     root: INFO
@@ -17,7 +23,6 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
-# 管理端点配置
 management:
   endpoints:
     web:
@@ -27,12 +32,7 @@ management:
     health:
       show-details: always
 
-# AI 服务配置
 ai-service:
   url: http://aiml-pub.aisp.test.abc/agent-api/workflow-agent-1-a852be77
-  health-check-api: /chatabc/health_check
-  init-session-api: /chatabc/init_session
-  upload-file-api: /chatabc/upload_file
   chat-api: /chatabc/chat
-  download-api: /chatabc/download_file
   timeout: 90000

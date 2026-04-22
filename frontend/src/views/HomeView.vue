@@ -1,540 +1,295 @@
 <template>
-  <div class="home-container">
-    <!-- 顶部导航 -->
+  <div class="home-page">
+    <!-- 顶部栏 -->
     <header class="header">
-      <div class="header-content">
-        <div class="logo">
-          <i class="fa fa-bar-chart"></i>
-          <span>DataInsight</span>
-        </div>
-        <nav class="nav">
-          <a href="#" class="nav-item active">首页</a>
-          <a href="#" class="nav-item">产品</a>
-          <a href="#" class="nav-item">解决方案</a>
-          <a href="#" class="nav-item">文档</a>
-        </nav>
-        <div class="header-actions">
-          <button class="btn-secondary">登录</button>
-          <button class="btn-primary">免费试用</button>
-        </div>
+      <div class="header-left">
+        <i class="fa fa-cube"></i>
+        <span class="header-title">AI 数据分析助手</span>
+      </div>
+      <div class="header-right">
+        <span class="username">{{ username }}</span>
+        <button class="logout-btn" @click="logout">退出</button>
       </div>
     </header>
 
-    <!-- 主内容区 -->
-    <main class="main-content">
-      <!-- Hero 区域 -->
-      <section class="hero">
-        <div class="hero-content">
-          <h1 class="hero-title">智能数据分析平台</h1>
-          <p class="hero-subtitle">
-            通过 AI 驱动的对话式分析，快速洞察数据价值
-          </p>
-          <div class="hero-actions">
-            <button class="btn-primary btn-large" @click="openChat">
-              <i class="fa fa-comments"></i>
-              开始分析
-            </button>
-            <button class="btn-outline btn-large">
-              <i class="fa fa-play-circle"></i>
-              观看演示
-            </button>
-          </div>
-        </div>
-        <div class="hero-visual">
-          <div class="data-card">
-            <div class="card-header">
-              <span class="card-title">实时数据分析</span>
-              <span class="card-badge">Live</span>
+    <!-- 主体 -->
+    <div class="main-area">
+      <!-- 左侧会话列表 -->
+      <aside class="sidebar">
+        <button class="new-chat-btn" @click="createConversation">
+          <i class="fa fa-plus"></i>
+          新建对话
+        </button>
+        <div class="conversation-list">
+          <div
+            v-for="conv in conversations"
+            :key="conv.conversationId"
+            class="conv-item"
+            :class="{ active: conv.conversationId === currentConversationId }"
+            @click="selectConversation(conv.conversationId)"
+          >
+            <div class="conv-title">
+              <i class="fa fa-message"></i>
+              <span>{{ conv.title || '新对话' }}</span>
             </div>
-            <div class="card-body">
-              <div class="stat-grid">
-                <div class="stat-item">
-                  <div class="stat-value">12,458</div>
-                  <div class="stat-label">总数据量</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value up">+23.5%</div>
-                  <div class="stat-label">增长率</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value">8.2s</div>
-                  <div class="stat-label">响应时间</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value">99.9%</div>
-                  <div class="stat-label">可用性</div>
-                </div>
-              </div>
-            </div>
+            <div class="conv-time">{{ formatTime(conv.createdAt) }}</div>
           </div>
+          <div v-if="conversations.length === 0" class="empty-hint">暂无对话</div>
         </div>
-      </section>
+      </aside>
 
-      <!-- 特性区域 -->
-      <section class="features">
-        <h2 class="section-title">核心功能</h2>
-        <div class="feature-grid">
-          <div class="feature-card">
-            <div class="feature-icon">
-              <i class="fa fa-line-chart"></i>
-            </div>
-            <h3 class="feature-title">实时图表生成</h3>
-            <p class="feature-desc">支持折线图、柱状图、饼图等多种图表类型，实时渲染</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">
-              <i class="fa fa-bolt"></i>
-            </div>
-            <h3 class="feature-title">流式响应</h3>
-            <p class="feature-desc">采用 SSE 技术，实现打字机效果的实时数据传输</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">
-              <i class="fa fa-shield"></i>
-            </div>
-            <h3 class="feature-title">数据安全</h3>
-            <p class="feature-desc">企业级数据加密，保障您的数据隐私安全</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">
-              <i class="fa fa-plug"></i>
-            </div>
-            <h3 class="feature-title">易于集成</h3>
-            <p class="feature-desc">提供 RESTful API，轻松集成到现有系统</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- 数据展示区域 -->
-      <section class="data-preview">
-        <h2 class="section-title">数据预览</h2>
-        <div class="preview-grid">
-          <div class="preview-card">
-            <div class="preview-header">
-              <h4>销售趋势</h4>
-              <span class="trend up">+15.3%</span>
-            </div>
-            <div class="preview-chart">
-              <div class="mini-bar">
-                <div class="bar" style="height: 40%"></div>
-                <div class="bar" style="height: 60%"></div>
-                <div class="bar" style="height: 45%"></div>
-                <div class="bar" style="height: 80%"></div>
-                <div class="bar" style="height: 70%"></div>
-                <div class="bar" style="height: 90%"></div>
-                <div class="bar" style="height: 85%"></div>
-              </div>
-            </div>
-          </div>
-          <div class="preview-card">
-            <div class="preview-header">
-              <h4>用户分布</h4>
-              <span class="count">8,432</span>
-            </div>
-            <div class="preview-chart">
-              <div class="mini-donut">
-                <svg viewBox="0 0 36 36">
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none" stroke="#e5e7eb" stroke-width="3"/>
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none" stroke="#667eea" stroke-width="3"
-                        stroke-dasharray="70, 100"/>
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div class="preview-card">
-            <div class="preview-header">
-              <h4>转化率</h4>
-              <span class="rate">4.8%</span>
-            </div>
-            <div class="preview-chart">
-              <div class="mini-line">
-                <svg viewBox="0 0 100 40">
-                  <polyline points="0,35 20,25 40,30 60,15 80,20 100,5"
-                            fill="none" stroke="#10a37f" stroke-width="2"/>
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <!-- 页脚 -->
-    <footer class="footer">
-      <div class="footer-content">
-        <p>&copy; 2024 DataInsight. All rights reserved.</p>
+      <!-- 右侧聊天区 -->
+      <div class="chat-area">
+        <ChatSidebar ref="chatSidebarRef" :conversation-id="currentConversationId" />
       </div>
-    </footer>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-const emit = defineEmits<{
-  openChat: []
-}>()
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { ChatSidebar } from '@/features/chat'
+import type { Message } from '@/features/chat'
 
-const openChat = () => {
-  emit('openChat')
+const router = useRouter()
+const username = ref(localStorage.getItem('chat_username') || '')
+const conversations = ref<any[]>([])
+const currentConversationId = ref<string | null>(null)
+const chatSidebarRef = ref<InstanceType<typeof ChatSidebar>>()
+
+const token = () => localStorage.getItem('chat_token') || ''
+
+const fetchConversations = async () => {
+  try {
+    const res = await fetch('/api/conversations', {
+      headers: { 'Authorization': `Bearer ${token()}` }
+    })
+    const data = await res.json()
+    conversations.value = data.conversations || []
+  } catch (e) {
+    console.error('获取会话列表失败', e)
+  }
 }
+
+const fetchMessages = async (conversationId: string) => {
+  try {
+    const res = await fetch(`/api/conversation/${conversationId}/messages`, {
+      headers: { 'Authorization': `Bearer ${token()}` }
+    })
+    const data = await res.json()
+    const msgs: Message[] = data.map((m: any) => ({
+      id: m.requestId,
+      role: m.role,
+      content: m.content,
+      timestamp: new Date(m.createdAt).getTime()
+    }))
+    chatSidebarRef.value?.loadMessages(msgs)
+  } catch (e) {
+    console.error('获取消息失败', e)
+  }
+}
+
+const createConversation = async () => {
+  try {
+    const res = await fetch('/api/conversation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token()}`
+      }
+    })
+    const data = await res.json()
+    if (res.ok) {
+      await fetchConversations()
+      currentConversationId.value = data.conversationId
+      chatSidebarRef.value?.clearMessages()
+    }
+  } catch (e) {
+    console.error('创建会话失败', e)
+  }
+}
+
+const selectConversation = async (conversationId: string) => {
+  currentConversationId.value = conversationId
+  await fetchMessages(conversationId)
+}
+
+const logout = () => {
+  localStorage.removeItem('chat_token')
+  localStorage.removeItem('chat_username')
+  router.push('/login')
+}
+
+const formatTime = (dateStr: string) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now.getTime() - d.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 1) return '刚刚'
+  if (diffMin < 60) return `${diffMin}分钟前`
+  const diffHour = Math.floor(diffMin / 60)
+  if (diffHour < 24) return `${diffHour}小时前`
+  return `${d.getMonth() + 1}/${d.getDate()}`
+}
+
+onMounted(async () => {
+  await fetchConversations()
+  if (conversations.value.length > 0) {
+    const latest = conversations.value[0]
+    currentConversationId.value = latest.conversationId
+    await fetchMessages(latest.conversationId)
+  }
+})
 </script>
 
 <style scoped>
-.home-container {
-  min-height: 100vh;
-  background: #f8fafc;
+.home-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-/* 顶部导航 */
 .header {
+  height: 56px;
   background: #fff;
   border-bottom: 1px solid #e5e7eb;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.header-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 24px;
-  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 20px;
+  flex-shrink: 0;
 }
 
-.logo {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 20px;
+  gap: 10px;
   font-weight: 600;
   color: #1f2937;
 }
 
-.logo i {
+.header-left i {
   color: #667eea;
-  font-size: 24px;
+  font-size: 20px;
 }
 
-.nav {
+.header-right {
   display: flex;
-  gap: 32px;
-}
-
-.nav-item {
-  color: #6b7280;
-  text-decoration: none;
-  font-size: 14px;
-  transition: color 0.2s;
-}
-
-.nav-item:hover,
-.nav-item.active {
-  color: #667eea;
-}
-
-.header-actions {
-  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
-/* 按钮样式 */
-.btn-primary {
-  background: #667eea;
+.username {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.logout-btn {
+  padding: 4px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.main-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 260px;
+  background: #fff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.new-chat-btn {
+  margin: 16px;
+  padding: 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
   border: none;
-  padding: 8px 20px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-primary:hover {
-  background: #5a67d8;
-}
-
-.btn-secondary {
-  background: #fff;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  padding: 8px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-secondary:hover {
-  border-color: #9ca3af;
-  background: #f9fafb;
-}
-
-.btn-outline {
-  background: transparent;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  padding: 8px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-outline:hover {
-  border-color: #667eea;
-  color: #667eea;
-}
-
-.btn-large {
-  padding: 12px 28px;
-  font-size: 16px;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
 }
 
-/* 主内容 */
-.main-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 24px;
+.new-chat-btn:hover {
+  opacity: 0.9;
 }
 
-/* Hero 区域 */
-.hero {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 60px;
-  align-items: center;
-  padding: 80px 0;
+.conversation-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px 16px;
 }
 
-.hero-title {
-  font-size: 48px;
-  font-weight: 700;
-  color: #1f2937;
-  line-height: 1.2;
-  margin-bottom: 20px;
-}
-
-.hero-subtitle {
-  font-size: 18px;
-  color: #6b7280;
-  margin-bottom: 32px;
-  max-width: 480px;
-}
-
-.hero-actions {
-  display: flex;
-  gap: 16px;
-}
-
-/* 数据卡片 */
-.data-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.card-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.card-badge {
-  background: #d1fae5;
-  color: #065f46;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-}
-
-.stat-item {
-  text-align: center;
-  padding: 16px;
-  background: #f9fafb;
-  border-radius: 12px;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1f2937;
+.conv-item {
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
   margin-bottom: 4px;
 }
 
-.stat-value.up {
-  color: #10a37f;
+.conv-item:hover {
+  background: #f3f4f6;
 }
 
-.stat-label {
-  font-size: 12px;
-  color: #6b7280;
+.conv-item.active {
+  background: #eef2ff;
 }
 
-/* 特性区域 */
-.features {
-  padding: 80px 0;
-}
-
-.section-title {
-  font-size: 32px;
-  font-weight: 700;
-  color: #1f2937;
-  text-align: center;
-  margin-bottom: 48px;
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-}
-
-.feature-card {
-  background: #fff;
-  padding: 32px 24px;
-  border-radius: 12px;
-  text-align: center;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.feature-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-}
-
-.feature-icon {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 14px;
+.conv-title {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 24px;
-}
-
-.feature-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 8px;
-}
-
-.feature-desc {
-  font-size: 14px;
-  color: #6b7280;
-  line-height: 1.6;
-}
-
-/* 数据预览 */
-.data-preview {
-  padding: 80px 0;
-}
-
-.preview-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-
-.preview-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
-}
-
-.preview-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.preview-header h4 {
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.trend.up {
-  color: #10a37f;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.count, .rate {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1f2937;
-}
-
-.preview-chart {
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.mini-bar {
-  display: flex;
   gap: 8px;
-  align-items: flex-end;
-  height: 60px;
+  font-size: 14px;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.bar {
-  width: 24px;
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-  border-radius: 4px;
+.conv-title i {
+  color: #9ca3af;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
-.mini-donut svg {
-  width: 80px;
-  height: 80px;
+.conv-time {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 4px;
 }
 
-.mini-line svg {
-  width: 100%;
-  height: 60px;
-}
-
-/* 页脚 */
-.footer {
-  background: #1f2937;
-  padding: 24px 0;
-  margin-top: 60px;
-}
-
-.footer-content {
+.empty-hint {
   text-align: center;
   color: #9ca3af;
-  font-size: 14px;
+  font-size: 13px;
+  padding: 40px 0;
+}
+
+.chat-area {
+  flex: 1;
+  overflow: hidden;
 }
 </style>

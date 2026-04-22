@@ -9,12 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "axios": "0.30.3",
-    "echarts": "5.4.3",
+    "vue": "3.4.31",
     "element-plus": "2.7.6",
+    "echarts": "5.4.3",
     "highlight.js": "11.9.0",
     "markdown-it": "14.1.1",
-    "vue": "3.4.31"
+    "lodash-es": "4.17.23"
   },
   "devDependencies": {
     "@types/node": "18.19.130",

@@ -13,17 +13,6 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        ws: true,
-        configure: (proxy) => {
-          proxy.on('proxyRes', (_proxyRes) => {
-            delete _proxyRes.headers['content-length']
-            _proxyRes.headers['Transfer-Encoding'] = 'chunked'
-          })
-        }
-      },
-      '/api/ai': {
         target: 'http://localhost:8080',
         changeOrigin: true,
         ws: true,
