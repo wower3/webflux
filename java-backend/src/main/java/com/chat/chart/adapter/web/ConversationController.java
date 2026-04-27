@@ -2,12 +2,12 @@ package com.chat.chart.adapter.web;
 
 import com.chat.chart.app.dto.ConversationDTO;
 import com.chat.chart.app.dto.ConversationListResponse;
+import com.chat.chart.app.dto.MessageDTO;
 import com.chat.chart.app.service.ConversationAppService;
 import com.chat.chart.domain.model.ChatMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -16,7 +16,6 @@ import java.util.List;
  * <p>
  * 提供会话（Conversation）的创建、列表查询和历史消息获取接口。
  * 每个会话对应一组连续的聊天记录，用于组织和管理多轮对话。
- * 需要通过 {@link com.chat.chart.adapter.config.AuthFilter} 的token认证。
  * </p>
  *
  * @see ConversationAppService
@@ -46,10 +45,10 @@ public class ConversationController {
      * </p>
      *
      * @param userId 从认证过滤器传递的用户ID
-     * @return 响应式包装的会话信息
+     * @return 会话信息
      */
     @PostMapping("/conversation")
-    public Mono<ConversationDTO> createConversation(@RequestAttribute("userId") Long userId) {
+    public ConversationDTO createConversation(@RequestAttribute("userId") Long userId) {
         log.info("[Conversation] 创建会话: userId={}", userId);
         return conversationAppService.createConversation(userId);
     }
@@ -61,10 +60,10 @@ public class ConversationController {
      * </p>
      *
      * @param userId 从认证过滤器传递的用户ID
-     * @return 响应式包装的会话列表响应
+     * @return 会话列表响应
      */
     @GetMapping("/conversations")
-    public Mono<ConversationListResponse> listConversations(@RequestAttribute("userId") Long userId) {
+    public ConversationListResponse listConversations(@RequestAttribute("userId") Long userId) {
         log.info("[Conversation] 列出会话: userId={}", userId);
         return conversationAppService.listConversations(userId);
     }
@@ -76,11 +75,16 @@ public class ConversationController {
      * </p>
      *
      * @param conversationId 会话ID
-     * @return 响应式包装的消息列表
+     * @return 消息列表
      */
     @GetMapping("/conversation/{conversationId}/messages")
-    public Mono<List<ChatMessage>> getConversationMessages(@PathVariable String conversationId) {
+    public List<MessageDTO> getConversationMessages(@PathVariable String conversationId) {
         log.info("[Conversation] 获取消息: conversationId={}", conversationId);
-        return conversationAppService.getConversationMessages(conversationId);
+        List<ChatMessage> messages = conversationAppService.getConversationMessages(conversationId);
+        List<MessageDTO> dtos = new java.util.ArrayList<>();
+        for (ChatMessage msg : messages) {
+            dtos.add(MessageDTO.from(msg));
+        }
+        return dtos;
     }
 }

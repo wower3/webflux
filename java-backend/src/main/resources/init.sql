@@ -9,7 +9,7 @@ CREATE DATABASE `chat_chart` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_gener
 USE `chat_chart`;
 
 -- 用户表
-CREATE TABLE ``user`` (
+CREATE TABLE `user` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '用户ID',
     `username` VARCHAR(64) NOT NULL COMMENT '用户名',
     `password` VARCHAR(128) NOT NULL COMMENT '密码(SHA-256)',
@@ -42,5 +42,5 @@ CREATE TABLE `chat_message` (
     KEY `idx_request_id_created` (`request_id`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天消息表';
 
--- 初始用户: abc / 123456
-INSERT INTO ``user`` (`username`, `password`) VALUES ('abc', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92');
+-- 初始用户: abc / 123456，固定token: default-chat-token
+INSERT INTO `user` (`username`, `password`, `token`) VALUES ('abc', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'default-chat-token');

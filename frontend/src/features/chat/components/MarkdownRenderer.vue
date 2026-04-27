@@ -16,18 +16,24 @@ const props = defineProps<{
   isStreaming?: boolean
 }>()
 
+const escapeHtml = (s: string) => {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
 const md = new MarkdownIt({
   html: false,
   breaks: true,
   linkify: true,
   typographer: true,
-  highlight: function (str: string, lang: string) {
+  highlight: function (str: string, lang: string): string {
     if (lang && hljs.getLanguage(lang)) {
       try {
         return hljs.highlight(str, { language: lang }).value
-      } catch (__) {}
+      } catch {
+        // fall through to escaped default
+      }
     }
-    return ''
+    return escapeHtml(str) || ''
   }
 })
 

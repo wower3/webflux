@@ -1,15 +1,16 @@
 package com.chat.chart.adapter.config;
 
 import com.chat.chart.app.service.AuthAppService;
+import com.chat.chart.domain.model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.web.server.ServerWebExchange;
-import org.springframework.web.server.WebFilter;
-import org.springframework.web.server.WebFilterChain;
-import reactor.core.publisher.Mono;
+
+import javax.servlet.*;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 /**
  * 认证过滤器
@@ -23,7 +24,7 @@ import reactor.core.publisher.Mono;
  */
 @Component
 @Order(1)
-public class AuthFilter implements WebFilter {
+public class AuthFilter implements Filter {
 
     private static final Logger log = LoggerFactory.getLogger(AuthFilter.class);
 
@@ -43,20 +44,19 @@ public class AuthFilter implements WebFilter {
      * 过滤请求，校验token有效性
      * <p>
      * 处理流程：
-     * 1. 判断是否为排除路径，是则直接放行
-     * 2. 从请求头提取 Bearer Token
-     * 3. 调用认证服务验证token，验证通过后放行并将userId存入请求属性
-     * 4. token缺失或无效时返回 401 Unauthorized
+     * 1. 从请求头提取 Bearer Token
+     * 2. 调用认证服务验证token，验证通过后放行并将userId存入请求属性
+     * 3. token缺失或无效时不拦截，使用默认userId放行
      * </p>
-     *
-     * @param exchange 当前服务端交换对象，包含请求和响应
-     * @param chain    过滤器链，用于传递给下一个过滤器
-     * @return 响应式完成信号
      */
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
+
         // 提取token
-        String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
+        String authHeader = httpRequest.getHeader("Authorization");
         String token = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
@@ -64,32 +64,21 @@ public class AuthFilter implements WebFilter {
 
         if (token != null && !token.trim().isEmpty()) {
             // 有token则尝试获取userId，获取失败也不拦截
-            return authAppService.validateToken(token)
-                    .flatMap(user -> {
-                        exchange.getAttributes().put("userId", user.getId());
-                        return chain.filter(exchange);
-                    })
-                    .switchIfEmpty(Mono.defer(() -> {
-                        exchange.getAttributes().put("userId", 1L);
-                        return chain.filter(exchange);
-                    }));
+            try {
+                User user = authAppService.validateToken(token);
+                if (user != null) {
+                    httpRequest.setAttribute("userId", user.getId());
+                } else {
+                    httpRequest.setAttribute("userId", 1L);
+                }
+            } catch (Exception e) {
+                httpRequest.setAttribute("userId", 1L);
+            }
+        } else {
+            // 无token，使用默认userId放行
+            httpRequest.setAttribute("userId", 1L);
         }
 
-        // 无token，使用默认userId放行
-        exchange.getAttributes().put("userId", 1L);
-        return chain.filter(exchange);
-    }
-
-    /**
-     * 判断是否为排除路径（不需要认证）
-     * <p>
-     * 排除路径包括：根路径 "/"、健康检查 "/health"、认证接口 "/api/auth/"
-     * </p>
-     *
-     * @param path 请求路径
-     * @return true 表示无需认证，直接放行
-     */
-    private boolean isExcludedPath(String path) {
-        return true;
+        chain.doFilter(request, response);
     }
 }

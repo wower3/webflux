@@ -1,9 +1,11 @@
 package com.chat.chart.infrastructure.gateway;
 
 import com.chat.chart.domain.gateway.ConversationGateway;
+import com.chat.chart.domain.model.ChatMessage;
 import com.chat.chart.domain.model.Conversation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -54,7 +56,7 @@ public class ConversationGatewayImpl implements ConversationGateway {
                     new Object[]{userId},
                     new ConversationRowMapper()
             );
-        } catch (Exception e) {
+        } catch (EmptyResultDataAccessException e) {
             log.debug("[ConversationGateway] 用户无会话: userId={}", userId);
             return null;
         }
@@ -86,6 +88,33 @@ public class ConversationGatewayImpl implements ConversationGateway {
         jdbcTemplate.update(
                 "INSERT INTO conversation (conversation_id, user_id, created_at) VALUES (?, ?, NOW())",
                 conversationId, userId
+        );
+    }
+
+    @Override
+    public int countMessagesByConversationId(String conversationId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM chat_message WHERE conversation_id = ?",
+                new Object[]{conversationId},
+                Integer.class
+        );
+        return count != null ? count : 0;
+    }
+
+    @Override
+    public List<ChatMessage> findMessagesByConversationId(String conversationId) {
+        return jdbcTemplate.query(
+                "SELECT request_id, conversation_id, role, content, created_at FROM chat_message WHERE conversation_id = ? ORDER BY created_at ASC",
+                new Object[]{conversationId},
+                (rs, rowNum) -> {
+                    ChatMessage msg = new ChatMessage();
+                    msg.setRequestId(rs.getString("request_id"));
+                    msg.setConversationId(rs.getString("conversation_id"));
+                    msg.setRole(rs.getString("role"));
+                    msg.setContent(rs.getString("content"));
+                    msg.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    return msg;
+                }
         );
     }
 

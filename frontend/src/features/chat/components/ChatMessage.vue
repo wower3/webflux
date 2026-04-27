@@ -5,7 +5,7 @@
         <i class="fa fa-cube"></i>
       </div>
       <div class="message-bubble">
-        <template v-for="(segment, index) in contentSegments" :key="segment.type === 'chart' ? segment.data?.id || `chart-${index}` : segment.type === 'card' ? segment.data?.cardId || `card-${index}` : `text-${index}`">
+        <template v-for="(segment, index) in contentSegments" :key="segment.type === 'chart' ? (segment.data as ChartData)?.id || `chart-${index}` : segment.type === 'card' ? (segment.data as CardData)?.cardId || `card-${index}` : `text-${index}`">
           <MarkdownRenderer v-if="segment.type === 'text'" :content="segment.content || ''" :isStreaming="isStreaming" />
           <ChartRenderer v-else-if="segment.type === 'chart' && segment.data" :chart="segment.data as ChartData" />
           <CardRenderer v-else-if="segment.type === 'card' && segment.data" :card="segment.data as CardData" @remove="handleRemoveCard" @update="handleUpdateCard" />
@@ -82,7 +82,7 @@ const contentSegments = computed((): ContentSegment[] => {
         type: 'chart',
         data: {
           id: embed.id,
-          type: embed.data.subtype,
+          type: embed.data.subtype as ChartData['type'],
           title: embed.data.title,
           data: embed.data.chartData
         }

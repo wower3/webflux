@@ -2,7 +2,7 @@
   <div class="guided-prompts">
     <div class="category-list">
       <div
-        v-for="(cat, i) in categories"
+        v-for="(cat, i) in CATEGORIES"
         :key="i"
         class="category-card"
         :class="{ active: activeIndex === i }"
@@ -67,7 +67,7 @@ const copy = async (text: string, key: string) => {
   setTimeout(() => { copiedIndex.value = null }, 1500)
 }
 
-const categories = [
+const CATEGORIES = [
   {
     name: '查询统计数据',
     icon: 'fa fa-table',
@@ -95,7 +95,7 @@ const categories = [
       '按投诉类型统计本月投诉数量分布',
     ]
   }
-]
+] as const
 </script>
 
 <style scoped>

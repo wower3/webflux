@@ -1,6 +1,6 @@
 import { ref, watch, nextTick, triggerRef, type Ref } from 'vue'
 import { sendChatStream } from '../api/chat'
-import type { Message, EmbedData } from '../types'
+import type { Message, EmbedData, CardData } from '../types'
 
 export function useChat(conversationId: Ref<string | null>) {
   const messages = ref<Message[]>([])
@@ -93,7 +93,7 @@ export function useChat(conversationId: Ref<string | null>) {
     }
   }
 
-  const handleUpdateCard = (card: any) => {
+  const handleUpdateCard = (card: CardData) => {
     const assistantMsg = messages.value.filter(m => m.role === 'assistant').pop()
     if (!assistantMsg || !assistantMsg.embeds) return
 
@@ -172,14 +172,15 @@ export function useChat(conversationId: Ref<string | null>) {
       triggerRef(messages)
     }
 
-    const cardCallback = (card: any) => {
-      if (!collectedEmbeds.has(card.cardId)) {
-        collectedEmbeds.add(card.cardId)
+    const cardCallback = (card: Record<string, unknown>) => {
+      const cardId = String(card.cardId ?? '')
+      if (!collectedEmbeds.has(cardId)) {
+        collectedEmbeds.add(cardId)
         if (!assistantMsg.embeds) assistantMsg.embeds = []
         assistantMsg.embeds.push({
-          id: card.cardId,
-          type: 'card',
-          data: card
+          id: cardId,
+          type: 'card' as const,
+          data: card as unknown as CardData
         })
       }
       triggerRef(messages)
@@ -192,8 +193,8 @@ export function useChat(conversationId: Ref<string | null>) {
       triggerRef(messages)
     }
 
-    const errorCallback = (error: Error) => {
-      assistantMsg.content += `\n[错误: ${error.message}]`
+    const errorCallback = (_error: Error) => {
+      assistantMsg.content += '\n[请求失败，请重试]'
       assistantMsg.isStreaming = false
       isLoading.value = false
       currentStreamCloser = null
@@ -213,7 +214,7 @@ export function useChat(conversationId: Ref<string | null>) {
     )
   }
 
-  watch(() => messages.value.length, scrollToBottom)
+  watch(messages, scrollToBottom, { deep: true })
 
   return {
     messages,

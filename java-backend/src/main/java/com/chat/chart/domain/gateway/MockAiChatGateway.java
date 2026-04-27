@@ -1,8 +1,5 @@
 package com.chat.chart.domain.gateway;
 
-import org.springframework.http.codec.ServerSentEvent;
-import reactor.core.publisher.Flux;
-
 /**
  * Mock AI聊天网关接口
  * <p>
@@ -18,10 +15,11 @@ public interface MockAiChatGateway {
      * Mock AI流式聊天
      * <p>
      * 返回预设的模拟响应数据，包含文本内容和图表JSON示例。
+     * 通过回调接口将事件数据传递给调用方。
      * </p>
      *
-     * @param message 用户消息内容（Mock模式下不实际使用）
-     * @return SSE事件流，包含模拟的AI回复内容
+     * @param message  用户消息内容（Mock模式下不实际使用）
+     * @param callback 流式事件回调
      */
-    Flux<ServerSentEvent<String>> mockChatStream(String message);
+    void mockChatStream(String message, AiStreamCallback callback);
 }

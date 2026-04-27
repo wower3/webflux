@@ -1,12 +1,9 @@
 server:
   port: 8080
-  shutdown: graceful
 
 spring:
   application:
     name: chat-chart-api
-  codec:
-    max-in-memory-size: 10MB
   datasource:
     url: jdbc:mysql://localhost:3306/chat_chart?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
@@ -22,15 +19,6 @@ logging:
     com.chat.chart: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: always
 
 ai-service:
   url: http://aiml-pub.aisp.test.abc/agent-api/workflow-agent-1-a852be77

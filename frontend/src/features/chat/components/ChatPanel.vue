@@ -81,16 +81,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, onMounted } from 'vue'
 import ChatView from './ChatView.vue'
-import type { Message } from '../types'
+import type { Message, MessageDTO, ConversationItem } from '../types'
 
 const emit = defineEmits<{
   close: []
 }>()
 
+const isLoggedIn = ref(!!localStorage.getItem('chat_token'))
 const token = () => localStorage.getItem('chat_token') || ''
-const isLoggedIn = computed(() => !!localStorage.getItem('chat_token'))
 const usernameDisplay = ref(localStorage.getItem('chat_username') || '')
 
 // 登录表单
@@ -102,7 +102,7 @@ const error = ref('')
 
 // 会话管理
 const showSidebar = ref(false)
-const conversations = ref<any[]>([])
+const conversations = ref<ConversationItem[]>([])
 const currentConversationId = ref<string | null>(null)
 const chatViewRef = ref<InstanceType<typeof ChatView>>()
 
@@ -123,6 +123,7 @@ const handleAuth = async () => {
     if (res.ok) {
       localStorage.setItem('chat_token', data.token)
       localStorage.setItem('chat_username', data.username)
+      isLoggedIn.value = true
       usernameDisplay.value = data.username
       await initChat()
     } else {
@@ -138,6 +139,7 @@ const handleAuth = async () => {
 const logout = () => {
   localStorage.removeItem('chat_token')
   localStorage.removeItem('chat_username')
+  isLoggedIn.value = false
   usernameDisplay.value = ''
   conversations.value = []
   currentConversationId.value = null
@@ -146,7 +148,12 @@ const logout = () => {
 
 const initChat = async () => {
   await fetchConversations()
-  await createConversation()
+  if (conversations.value.length > 0) {
+    currentConversationId.value = conversations.value[0].conversationId
+    selectConversation(conversations.value[0].conversationId)
+  } else {
+    await createConversation()
+  }
 }
 
 const fetchConversations = async () => {
@@ -156,8 +163,8 @@ const fetchConversations = async () => {
     })
     const data = await res.json()
     conversations.value = data.conversations || []
-  } catch (e) {
-    console.error('获取会话列表失败', e)
+  } catch {
+    // silently fail — will retry on next user action
   }
 }
 
@@ -176,8 +183,8 @@ const createConversation = async () => {
       chatViewRef.value?.clearMessages()
       showSidebar.value = false
     }
-  } catch (e) {
-    console.error('创建会话失败', e)
+  } catch {
+    // silently fail
   }
 }
 
@@ -188,7 +195,7 @@ const selectConversation = async (conversationId: string) => {
       headers: { 'Authorization': `Bearer ${token()}` }
     })
     const data = await res.json()
-    const msgs: Message[] = data.map((m: any) => ({
+    const msgs: Message[] = data.map((m: MessageDTO) => ({
       id: m.requestId,
       role: m.role,
       content: m.content,
@@ -196,8 +203,8 @@ const selectConversation = async (conversationId: string) => {
     }))
     chatViewRef.value?.loadMessages(msgs)
     showSidebar.value = false
-  } catch (e) {
-    console.error('获取消息失败', e)
+  } catch {
+    // silently fail
   }
 }
 

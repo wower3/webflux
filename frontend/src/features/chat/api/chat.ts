@@ -1,11 +1,11 @@
-// API接口 - Java后端（POST + fetch SSE）
+import type { StreamEvent } from '../types'
 
 const getToken = (): string => localStorage.getItem('chat_token') || ''
 
 export interface StreamCallbacks {
   onContent: (content: string) => void
-  onChart: (chart: any) => void
-  onCard: (card: any) => void
+  onChart: (chart: Record<string, unknown>) => void
+  onCard: (card: Record<string, unknown>) => void
   onEnd: () => void
   onError: (error: Error) => void
 }
@@ -13,11 +13,8 @@ export interface StreamCallbacks {
 function createSSEConnection(
   url: string,
   body: object,
-  callbacks: StreamCallbacks,
-  logPrefix: string
+  callbacks: StreamCallbacks
 ): () => void {
-  console.log(`[${logPrefix}] POST ${url}`, body)
-
   let eventCount = 0
   let ended = false
   let abortController: AbortController | null = null
@@ -43,9 +40,12 @@ function createSSEConnection(
       return
     }
 
-    console.log(`[${logPrefix}] Connected`)
+    if (!response.body) {
+      callbacks.onError(new Error('No response body'))
+      return
+    }
 
-    const reader = response.body!.getReader()
+    const reader = response.body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
 
@@ -65,35 +65,38 @@ function createSSEConnection(
         if (!dataStr) continue
 
         eventCount++
-        console.log(`[${logPrefix}] Event #${eventCount}:`, dataStr.substring(0, 100))
-
         try {
-          const data = JSON.parse(dataStr)
+          const data = JSON.parse(dataStr) as StreamEvent
 
           switch (data.type) {
             case 'content':
               callbacks.onContent(data.data as string)
               break
             case 'chart':
-              callbacks.onChart(data.data)
+              if (data.data && typeof data.data === 'object') {
+                callbacks.onChart(data.data)
+              }
               break
             case 'card':
-              callbacks.onCard(data.data)
+              if (data.data && typeof data.data === 'object') {
+                callbacks.onCard(data.data)
+              }
               break
             case 'end':
-              console.log(`[${logPrefix}] End event, total:`, eventCount)
               ended = true
               callbacks.onEnd()
               break
           }
-        } catch (e) {
-          console.error(`[${logPrefix}] Parse error:`, e)
+        } catch {
+          // 非JSON内容或JSON不完整，当作纯文本content处理
+          if (!dataStr.startsWith('{')) {
+            callbacks.onContent(dataStr)
+          }
         }
       }
     }
   }).catch((err) => {
     if (!ended) {
-      console.error(`[${logPrefix}] Error:`, err)
       ended = true
       callbacks.onError(err instanceof Error ? err : new Error(String(err)))
     }
@@ -110,9 +113,9 @@ export function sendChatStream(
   callbacks: StreamCallbacks,
   conversationId?: string
 ): () => void {
-  const body: any = { message }
+  const body: Record<string, string | undefined> = { message }
   if (conversationId) {
     body.conversationId = conversationId
   }
-  return createSSEConnection('/api/chat/stream', body, callbacks, 'Chat Stream')
+  return createSSEConnection('/api/chat/stream', body, callbacks)
 }

@@ -1,15 +1,27 @@
 import type { App } from 'vue'
 
 // 组件
-export { default as ChatWidget } from './components/ChatWidget.vue'
-export { default as ChatPanel } from './components/ChatPanel.vue'
-export { default as ChatView } from './components/ChatView.vue'
-export { default as ChatMessage } from './components/ChatMessage.vue'
-export { default as ChatInput } from './components/ChatInput.vue'
-export { default as GuidedPrompts } from './components/GuidedPrompts.vue'
-export { default as MarkdownRenderer } from './components/MarkdownRenderer.vue'
-export { default as ChartRenderer } from './components/ChartRenderer.vue'
-export { default as CardRenderer } from './components/CardRenderer.vue'
+import ChatWidget from './components/ChatWidget.vue'
+import ChatPanel from './components/ChatPanel.vue'
+import ChatView from './components/ChatView.vue'
+import ChatMessage from './components/ChatMessage.vue'
+import ChatInput from './components/ChatInput.vue'
+import GuidedPrompts from './components/GuidedPrompts.vue'
+import MarkdownRenderer from './components/MarkdownRenderer.vue'
+import ChartRenderer from './components/ChartRenderer.vue'
+import CardRenderer from './components/CardRenderer.vue'
+
+export {
+  ChatWidget,
+  ChatPanel,
+  ChatView,
+  ChatMessage,
+  ChatInput,
+  GuidedPrompts,
+  MarkdownRenderer,
+  ChartRenderer,
+  CardRenderer
+}
 
 // Composable
 export { useChat } from './composables/useChat'

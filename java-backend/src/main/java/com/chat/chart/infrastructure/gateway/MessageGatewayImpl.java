@@ -6,11 +6,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 消息网关实现
@@ -66,47 +68,24 @@ public class MessageGatewayImpl implements MessageGateway {
      */
     @Override
     public List<ChatMessage> findContextMessages(String conversationId, int maxRequests) {
-        // 步骤1：查找最近maxRequests个不同的requestId
-        String requestSql = "SELECT request_id FROM chat_message WHERE conversation_id = ? GROUP BY request_id ORDER BY MAX(created_at) DESC LIMIT ?";
-        List<String> requests = jdbcTemplate.queryForList(requestSql, new Object[]{conversationId, maxRequests}, String.class);
+        String requestSql = "SELECT request_id FROM chat_message WHERE conversation_id = :conversationId GROUP BY request_id ORDER BY MAX(created_at) DESC LIMIT :maxRequests";
+        Map<String, Object> params = new java.util.HashMap<>();
+        params.put("conversationId", conversationId);
+        params.put("maxRequests", maxRequests);
+        List<String> requests = new NamedParameterJdbcTemplate(jdbcTemplate).queryForList(requestSql, params, String.class);
 
         if (requests.isEmpty()) {
             return java.util.Collections.emptyList();
         }
 
-        // 步骤2：构建IN查询占位符
-        StringBuilder placeholders = new StringBuilder();
-        Object[] params = new Object[requests.size()];
-        for (int i = 0; i < requests.size(); i++) {
-            if (i > 0) {
-                placeholders.append(",");
-            }
-            placeholders.append("?");
-            params[i] = requests.get(i);
-        }
-
-        // 步骤3：查询这些request下的所有消息，按时间正序排列
-        return jdbcTemplate.query(
-                "SELECT request_id, conversation_id, role, content, created_at FROM chat_message WHERE conversation_id = ? AND request_id IN ("
-                        + placeholders.toString()
-                        + ") ORDER BY created_at ASC",
-                concatenateParams(new Object[]{conversationId}, params),
+        Map<String, Object> queryParams = new java.util.HashMap<>();
+        queryParams.put("conversationId", conversationId);
+        queryParams.put("requestIds", requests);
+        return new NamedParameterJdbcTemplate(jdbcTemplate).query(
+                "SELECT request_id, conversation_id, role, content, created_at FROM chat_message WHERE conversation_id = :conversationId AND request_id IN (:requestIds) ORDER BY created_at ASC",
+                queryParams,
                 new MessageRowMapper()
         );
-    }
-
-    /**
-     * 合并两个参数数组
-     *
-     * @param first  第一个参数数组
-     * @param second 第二个参数数组
-     * @return 合并后的新数组
-     */
-    private Object[] concatenateParams(Object[] first, Object[] second) {
-        Object[] result = new Object[first.length + second.length];
-        System.arraycopy(first, 0, result, 0, first.length);
-        System.arraycopy(second, 0, result, first.length, second.length);
-        return result;
     }
 
     /**

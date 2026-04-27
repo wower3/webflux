@@ -1,5 +1,3 @@
-// 类型定义
-
 export interface ChartData {
   id: string
   type: 'line' | 'bar' | 'pie' | 'scatter'
@@ -27,11 +25,17 @@ export interface CardButton {
   apiEndpoint?: string
 }
 
-export interface EmbedData {
-  id: string
-  type: 'chart' | 'table' | 'card' | 'image'
-  data: any
+export interface ChartEmbedPayload {
+  subtype: string
+  title: string
+  chartData: Record<string, number>
 }
+
+export type EmbedData =
+  | { id: string; type: 'chart'; data: ChartEmbedPayload }
+  | { id: string; type: 'table'; data: Record<string, unknown> }
+  | { id: string; type: 'card'; data: CardData }
+  | { id: string; type: 'image'; data: Record<string, unknown> }
 
 export interface Message {
   id: string
@@ -44,5 +48,24 @@ export interface Message {
 
 export interface StreamEvent {
   type: 'content' | 'chart' | 'card' | 'end'
-  data?: any
+  data?: string | Record<string, unknown> | null
+}
+
+export interface ConversationItem {
+  conversationId: string
+  createdAt: string
+  messageCount: number
+  active: boolean
+}
+
+export interface ConversationListResponse {
+  conversations: ConversationItem[]
+}
+
+export interface MessageDTO {
+  requestId: string
+  conversationId: string
+  role: string
+  content: string
+  createdAt: string
 }

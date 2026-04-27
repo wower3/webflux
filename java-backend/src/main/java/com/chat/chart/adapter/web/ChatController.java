@@ -2,34 +2,27 @@ package com.chat.chart.adapter.web;
 
 import com.chat.chart.app.dto.ChatRequest;
 import com.chat.chart.app.service.ChatAppService;
-import com.chat.chart.app.service.ChatAppService.ChatStreamResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 聊天控制器
  * <p>
  * 提供聊天相关的API接口，包括根路径信息、健康检查、
  * 流式聊天（SSE）和普通聊天接口。
- * 需要通过 {@link com.chat.chart.adapter.config.AuthFilter} 的token认证。
  * </p>
  *
  * @see ChatAppService
  */
 @RestController
-@CrossOrigin(origins = "*")
 public class ChatController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
@@ -80,10 +73,10 @@ public class ChatController {
      *
      * @param chatRequest 聊天请求体，包含消息内容和会话ID
      * @param userId      从认证过滤器传递的用户ID
-     * @return SSE事件流，包含文本内容、图表数据等
+     * @return SseEmitter，用于流式推送AI响应
      */
     @PostMapping(value = "/api/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> chatStream(
+    public SseEmitter chatStream(
             @RequestBody ChatRequest chatRequest,
             @RequestAttribute("userId") Long userId) {
 
@@ -93,7 +86,7 @@ public class ChatController {
                 chatRequest.getMessage(),
                 userId,
                 chatRequest.getConversationId()
-        ).flatMapMany(ChatStreamResult::getStream);
+        );
     }
 
     /**
@@ -102,42 +95,27 @@ public class ChatController {
      * 接收用户消息，等待AI完整响应后一次性返回文本内容。
      * 适用于不需要实时流式展示的场景。
      * </p>
+     * <p>
+     * TODO: 当前未使用，待AI真实接入后根据需要启用或移除。
+     * </p>
      *
      * @param chatRequest 聊天请求体，包含消息内容和会话ID
      * @param userId      从认证过滤器传递的用户ID
-     * @return 响应式包装的响应实体，包含完整消息文本
+     * @return 响应实体，包含完整消息文本
      */
+    // @Deprecated // 非流式接口，当前未使用，待确认后启用或移除
     @PostMapping("/api/chat")
-    public Mono<ResponseEntity<Map<String, Object>>> chat(@RequestBody ChatRequest chatRequest,
-                                                           @RequestAttribute("userId") Long userId) {
+    public ResponseEntity<Map<String, Object>> chat(@RequestBody ChatRequest chatRequest,
+                                                     @RequestAttribute("userId") Long userId) {
         log.info("[POST /api/chat] message={}, userId={}", chatRequest.getMessage(), userId);
 
-        StringBuilder contentBuilder = new StringBuilder();
-
-        return chatAppService.handleMessage(
+        String message = chatAppService.handleMessageSync(
                 chatRequest.getMessage(),
                 userId,
                 chatRequest.getConversationId()
-        ).flatMapMany(result -> result.getStream()
-                .doOnNext(sse -> {
-                    // 从SSE事件中提取文本内容并拼接
-                    if (sse.data() != null) {
-                        try {
-                            JsonNode node = new ObjectMapper().readTree(sse.data());
-                            if ("content".equals(node.path("type").asText())) {
-                                contentBuilder.append(node.path("data").asText(""));
-                            }
-                        } catch (Exception e) {
-                            contentBuilder.append(sse.data());
-                        }
-                    }
-                })
-        ).collectList()
-        .map(events -> {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", contentBuilder.toString());
-            return ResponseEntity.ok(body);
-        })
-        .defaultIfEmpty(ResponseEntity.ok(Collections.<String, Object>singletonMap("message", "")));
+        );
+        Map<String, Object> body = new HashMap<>();
+        body.put("message", message);
+        return ResponseEntity.ok(body);
     }
 }

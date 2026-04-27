@@ -1,12 +1,8 @@
 package com.chat.chart.adapter.config;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.reactive.CorsWebFilter;
-import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * CORS 跨域配置
@@ -19,39 +15,22 @@ import java.util.Arrays;
  * @version 1.0.0
  */
 @Configuration
-public class CorsConfig {
+public class CorsConfig implements WebMvcConfigurer {
 
     /**
-     * 创建 CORS 跨域过滤器
+     * 配置CORS跨域映射
      * <p>
-     * 配置项包括：允许所有来源、所有请求头、所有HTTP方法、
-     * 允许携带凭证、暴露所有响应头。
+     * 允许所有来源、所有请求头、所有HTTP方法，
+     * 允许携带凭证。
      * </p>
-     *
-     * @return {@link CorsWebFilter} 跨域过滤器实例
      */
-    @Bean
-    public CorsWebFilter corsWebFilter() {
-        CorsConfiguration config = new CorsConfiguration();
-
-        // 允许的源
-        config.addAllowedOriginPattern("*");
-
-        // 允许的请求头
-        config.addAllowedHeader("*");
-
-        // 允许的请求方法
-        config.addAllowedMethod("*");
-
-        // 允许携带凭证
-        config.setAllowCredentials(true);
-
-        // 暴露的响应头
-        config.setExposedHeaders(Arrays.asList("*"));
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-
-        return new CorsWebFilter(source);
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins("*")
+                .allowedMethods("*")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
     }
 }

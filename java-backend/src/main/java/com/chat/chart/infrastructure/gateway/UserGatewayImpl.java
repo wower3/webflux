@@ -2,13 +2,14 @@ package com.chat.chart.infrastructure.gateway;
 
 import com.chat.chart.domain.gateway.UserGateway;
 import com.chat.chart.domain.model.User;
+import com.chat.chart.domain.util.HashUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
-import java.security.MessageDigest;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -56,7 +57,7 @@ public class UserGatewayImpl implements UserGateway {
                     new Object[]{username},
                     new UserRowMapper()
             );
-        } catch (Exception e) {
+        } catch (EmptyResultDataAccessException e) {
             log.debug("[UserGateway] 用户不存在: {}", username);
             return null;
         }
@@ -64,9 +65,6 @@ public class UserGatewayImpl implements UserGateway {
 
     /**
      * 根据token查找用户
-     * <p>
-     * 查询异常时返回null，表示token无效。
-     * </p>
      *
      * @param token 认证token
      * @return 用户信息，不存在返回null
@@ -79,7 +77,7 @@ public class UserGatewayImpl implements UserGateway {
                     new Object[]{token},
                     new UserRowMapper()
             );
-        } catch (Exception e) {
+        } catch (EmptyResultDataAccessException e) {
             log.debug("[UserGateway] token无效: {}...", token != null && token.length() > 8 ? token.substring(0, 8) : token);
             return null;
         }
@@ -96,7 +94,7 @@ public class UserGatewayImpl implements UserGateway {
      */
     @Override
     public void saveUser(String username, String password) {
-        String hashedPassword = sha256(password);
+        String hashedPassword = HashUtil.sha256(password);
         jdbcTemplate.update(
                 "INSERT INTO `user` (username, password, created_at) VALUES (?, ?, ?)",
                 username, hashedPassword, LocalDateTime.now()
@@ -115,34 +113,6 @@ public class UserGatewayImpl implements UserGateway {
                 "UPDATE `user` SET token = ? WHERE id = ?",
                 token, userId
         );
-    }
-
-    /**
-     * SHA-256哈希计算
-     * <p>
-     * 将输入字符串转换为SHA-256十六进制哈希值。
-     * </p>
-     *
-     * @param input 待哈希的字符串
-     * @return SHA-256十六进制哈希字符串
-     * @throws RuntimeException 哈希计算失败时抛出
-     */
-    public static String sha256(String input) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes("UTF-8"));
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) {
-                    hexString.append('0');
-                }
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (Exception e) {
-            throw new RuntimeException("SHA-256 hashing failed", e);
-        }
     }
 
     /**

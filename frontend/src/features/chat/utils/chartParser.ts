@@ -71,8 +71,8 @@ export function toEChartsOption(chart: ChartData) {
         // 标签位置根据数值正负自动调整
         label: {
           show: true,
-          position: hasNegative ? 'top' : 'top',
-          formatter: (params: any) => params.value?.toString() || ''
+          position: 'top' as const,
+          formatter: (params: { value?: number }) => params.value?.toString() || ''
         },
         // 标记线：零线
         markLine: hasNegative ? {
@@ -112,10 +112,10 @@ export function toEChartsOption(chart: ChartData) {
         // 标签位置根据正负自动调整
         label: {
           show: true,
-          position: (params: any) => {
-            return params.value >= 0 ? 'top' : 'bottom'
+          position: (params: { value?: number }) => {
+            return (params.value ?? 0) >= 0 ? 'top' : 'bottom'
           },
-          formatter: (params: any) => params.value?.toString() || ''
+          formatter: (params: { value?: number }) => params.value?.toString() || ''
         }
       }]
     }
