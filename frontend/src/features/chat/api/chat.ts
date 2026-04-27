@@ -1,11 +1,7 @@
-import type { StreamEvent } from '../types'
-
 const getToken = (): string => localStorage.getItem('chat_token') || ''
 
 export interface StreamCallbacks {
   onContent: (content: string) => void
-  onChart: (chart: Record<string, unknown>) => void
-  onCard: (card: Record<string, unknown>) => void
   onEnd: () => void
   onError: (error: Error) => void
 }
@@ -15,7 +11,6 @@ function createSSEConnection(
   body: object,
   callbacks: StreamCallbacks
 ): () => void {
-  let eventCount = 0
   let ended = false
   let abortController: AbortController | null = null
 
@@ -64,36 +59,16 @@ function createSSEConnection(
         const dataStr = line.slice(5).trim()
         if (!dataStr) continue
 
-        eventCount++
-        try {
-          const data = JSON.parse(dataStr) as StreamEvent
-
-          switch (data.type) {
-            case 'content':
-              callbacks.onContent(data.data as string)
-              break
-            case 'chart':
-              if (data.data && typeof data.data === 'object') {
-                callbacks.onChart(data.data)
-              }
-              break
-            case 'card':
-              if (data.data && typeof data.data === 'object') {
-                callbacks.onCard(data.data)
-              }
-              break
-            case 'end':
-              ended = true
-              callbacks.onEnd()
-              break
-          }
-        } catch {
-          // 非JSON内容或JSON不完整，当作纯文本content处理
-          if (!dataStr.startsWith('{')) {
-            callbacks.onContent(dataStr)
-          }
+        if (dataStr === '{"type":"end","data":null}') {
+          ended = true
+          callbacks.onEnd()
+        } else {
+          callbacks.onContent(dataStr)
         }
       }
+    }
+    if (!ended) {
+      callbacks.onEnd()
     }
   }).catch((err) => {
     if (!ended) {

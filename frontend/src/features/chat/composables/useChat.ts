@@ -42,20 +42,23 @@ export function useChat(conversationId: Ref<string | null>) {
           try {
             const data = JSON.parse(jsonStr)
 
-            if (data.type === 'chart' && data.subtype && !processedIds.has(data.chartId)) {
-              processedIds.add(data.chartId)
-              embeds.push({
-                id: data.chartId,
-                type: 'chart',
-                data: {
-                  subtype: data.subtype,
-                  title: data.title || '',
-                  chartData: data.data || {}
-                }
-              })
-              const placeholder = `[CHART:${data.chartId}]`
-              content = content.substring(0, startPos) + placeholder + content.substring(pos + 1)
-              pos = startPos + placeholder.length - 1
+            if (data.type === 'chart' && data.subtype) {
+              const chartId: string = data.chartId || `${data.subtype}_${data.title || 'untitled'}`
+              if (!processedIds.has(chartId)) {
+                processedIds.add(chartId)
+                embeds.push({
+                  id: chartId,
+                  type: 'chart',
+                  data: {
+                    subtype: data.subtype,
+                    title: data.title || '',
+                    chartData: data.data || {}
+                  }
+                })
+                const placeholder = `[CHART:${chartId}]`
+                content = content.substring(0, startPos) + placeholder + content.substring(pos + 1)
+                pos = startPos + placeholder.length - 1
+              }
             } else if (data.type === 'card' && data.cardId && !processedIds.has(data.cardId)) {
               processedIds.add(data.cardId)
               embeds.push({
@@ -205,8 +208,6 @@ export function useChat(conversationId: Ref<string | null>) {
       userMessage,
       {
         onContent: contentCallback,
-        onChart: () => {},
-        onCard: cardCallback,
         onEnd: endCallback,
         onError: errorCallback
       },
