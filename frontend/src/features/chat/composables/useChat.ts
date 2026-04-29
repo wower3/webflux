@@ -112,7 +112,11 @@ export function useChat(conversationId: Ref<string | null>) {
       currentStreamCloser()
       currentStreamCloser = null
     }
-    messages.value = msgs
+    messages.value = msgs.map((msg) => {
+      if (msg.role !== 'assistant') return msg
+      const { cleanContent, embeds } = parseEmbeds(msg.content)
+      return { ...msg, content: cleanContent, embeds: embeds.length > 0 ? embeds : undefined }
+    })
     isLoading.value = false
     messageIdCounter = msgs.length
     nextTick(scrollToBottom)

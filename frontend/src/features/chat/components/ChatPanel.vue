@@ -148,12 +148,7 @@ const logout = () => {
 
 const initChat = async () => {
   await fetchConversations()
-  if (conversations.value.length > 0) {
-    currentConversationId.value = conversations.value[0].conversationId
-    selectConversation(conversations.value[0].conversationId)
-  } else {
-    await createConversation()
-  }
+  await createConversation()
 }
 
 const fetchConversations = async () => {
