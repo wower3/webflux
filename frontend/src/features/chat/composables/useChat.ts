@@ -22,63 +22,66 @@ export function useChat(conversationId: Ref<string | null>) {
   function parseEmbeds(content: string): { cleanContent: string, embeds: EmbedData[] } {
     const embeds: EmbedData[] = []
     const processedIds = new Set<string>()
-    const embedStart = '{"type":"'
-    let startPos = content.indexOf(embedStart)
+    const embedPattern = /"type"\s*:\s*"(chart|card)"/g
+    let match: RegExpExecArray | null
 
-    while (startPos !== -1) {
-      let braceDepth = 0
-      let bracketDepth = 0
-      let pos = startPos
+    while ((match = embedPattern.exec(content)) !== null) {
+      let openBrace = -1
+      let depth = 0
+      for (let i = match.index; i >= 0; i--) {
+        if (content[i] === '}') depth++
+        else if (content[i] === '{') { depth--; if (depth < 0) { openBrace = i; break } }
+      }
+      if (openBrace === -1) continue
 
-      while (pos < content.length) {
-        if (content[pos] === '{') braceDepth++
-        else if (content[pos] === '}') braceDepth--
-        else if (content[pos] === '[') bracketDepth++
-        else if (content[pos] === ']') bracketDepth--
+      let closeBrace = -1
+      depth = 0
+      for (let i = openBrace; i < content.length; i++) {
+        if (content[i] === '{') depth++
+        else if (content[i] === '}') { depth--; if (depth === 0 && i > openBrace) { closeBrace = i; break } }
+      }
+      if (closeBrace === -1) continue
 
-        if (braceDepth === 0 && bracketDepth === 0 && pos > startPos) {
-          const jsonStr = content.slice(startPos, pos + 1)
+      const jsonStr = content.slice(openBrace, closeBrace + 1)
 
-          try {
-            const data = JSON.parse(jsonStr)
+      try {
+        const data = JSON.parse(jsonStr)
 
-            if (data.type === 'chart' && data.subtype) {
-              const chartId: string = data.chartId || `${data.subtype}_${data.title || 'untitled'}`
-              if (!processedIds.has(chartId)) {
-                processedIds.add(chartId)
-                embeds.push({
-                  id: chartId,
-                  type: 'chart',
-                  data: {
-                    subtype: data.subtype,
-                    title: data.title || '',
-                    chartData: data.data || {}
-                  }
-                })
-                const placeholder = `[CHART:${chartId}]`
-                content = content.substring(0, startPos) + placeholder + content.substring(pos + 1)
-                pos = startPos + placeholder.length - 1
+        if (data.type === 'chart' && data.subtype) {
+          const chartId: string = data.chartId || `${data.subtype}_${data.title || 'untitled'}`
+          if (!processedIds.has(chartId)) {
+            processedIds.add(chartId)
+            embeds.push({
+              id: chartId,
+              type: 'chart',
+              data: {
+                subtype: data.subtype,
+                title: data.title || '',
+                chartData: data.data || {}
               }
-            } else if (data.type === 'card' && data.cardId && !processedIds.has(data.cardId)) {
-              processedIds.add(data.cardId)
-              embeds.push({
-                id: data.cardId,
-                type: 'card',
-                data: data
-              })
-              const placeholder = `[CARD:${data.cardId}]`
-              content = content.substring(0, startPos) + placeholder + content.substring(pos + 1)
-              pos = startPos + placeholder.length - 1
-            }
-          } catch (e) {
-            // JSON 不完整，等待更多数据
+            })
+            const placeholder = `[CHART:${chartId}]`
+            content = content.substring(0, openBrace) + placeholder + content.substring(closeBrace + 1)
+            embedPattern.lastIndex = openBrace + placeholder.length
+            continue
           }
-          break
+        } else if (data.type === 'card' && data.cardId && !processedIds.has(data.cardId)) {
+          processedIds.add(data.cardId)
+          embeds.push({
+            id: data.cardId,
+            type: 'card',
+            data: data
+          })
+          const placeholder = `[CARD:${data.cardId}]`
+          content = content.substring(0, openBrace) + placeholder + content.substring(closeBrace + 1)
+          embedPattern.lastIndex = openBrace + placeholder.length
+          continue
         }
-        pos++
+      } catch {
+        // JSON 不完整，等待更多数据
       }
 
-      startPos = content.indexOf(embedStart, pos + 1)
+      embedPattern.lastIndex = closeBrace + 1
     }
 
     return { cleanContent: content, embeds }
@@ -179,16 +182,14 @@ export function useChat(conversationId: Ref<string | null>) {
       triggerRef(messages)
     }
 
-    const cardCallback = (card: Record<string, unknown>) => {
-      const cardId = String(card.cardId ?? '')
-      if (!collectedEmbeds.has(cardId)) {
-        collectedEmbeds.add(cardId)
-        if (!assistantMsg.embeds) assistantMsg.embeds = []
-        assistantMsg.embeds.push({
-          id: cardId,
-          type: 'card' as const,
-          data: card as unknown as CardData
-        })
+    const finalOutputCallback = (content: string) => {
+      rawContent = content
+      collectedEmbeds.clear()
+      const { cleanContent, embeds } = parseEmbeds(rawContent)
+      assistantMsg.content = cleanContent
+      assistantMsg.embeds = embeds.length > 0 ? embeds : undefined
+      for (const embed of embeds) {
+        collectedEmbeds.add(embed.id)
       }
       triggerRef(messages)
     }
@@ -212,6 +213,7 @@ export function useChat(conversationId: Ref<string | null>) {
       userMessage,
       {
         onContent: contentCallback,
+        onFinalOutput: finalOutputCallback,
         onEnd: endCallback,
         onError: errorCallback
       },

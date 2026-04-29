@@ -2,6 +2,7 @@ const getToken = (): string => localStorage.getItem('chat_token') || ''
 
 export interface StreamCallbacks {
   onContent: (content: string) => void
+  onFinalOutput: (content: string) => void
   onEnd: () => void
   onError: (error: Error) => void
 }
@@ -59,10 +60,17 @@ function createSSEConnection(
         const dataStr = line.slice(5).trim()
         if (!dataStr) continue
 
-        if (dataStr === '{"type":"end","data":null}') {
-          ended = true
-          callbacks.onEnd()
-        } else {
+        try {
+          const event = JSON.parse(dataStr)
+          if (event.type === 'end') {
+            ended = true
+            callbacks.onEnd()
+          } else if (event.type === 'final_output') {
+            callbacks.onFinalOutput(String(event.data ?? ''))
+          } else {
+            callbacks.onContent(String(event.data ?? ''))
+          }
+        } catch {
           callbacks.onContent(dataStr)
         }
       }

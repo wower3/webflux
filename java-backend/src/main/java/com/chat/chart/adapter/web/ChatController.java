@@ -5,19 +5,16 @@ import com.chat.chart.app.service.ChatAppService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * 聊天控制器
  * <p>
- * 提供聊天相关的API接口，包括根路径信息、健康检查、
- * 流式聊天（SSE）和普通聊天接口。
+ * 提供聊天相关的API接口，包括根路径信息、健康检查和流式聊天（SSE）。
  * </p>
  *
  * @see ChatAppService
@@ -87,35 +84,5 @@ public class ChatController {
                 userId,
                 chatRequest.getConversationId()
         );
-    }
-
-    /**
-     * 普通聊天接口（非流式）
-     * <p>
-     * 接收用户消息，等待AI完整响应后一次性返回文本内容。
-     * 适用于不需要实时流式展示的场景。
-     * </p>
-     * <p>
-     * TODO: 当前未使用，待AI真实接入后根据需要启用或移除。
-     * </p>
-     *
-     * @param chatRequest 聊天请求体，包含消息内容和会话ID
-     * @param userId      从认证过滤器传递的用户ID
-     * @return 响应实体，包含完整消息文本
-     */
-    // @Deprecated // 非流式接口，当前未使用，待确认后启用或移除
-    @PostMapping("/api/chat")
-    public ResponseEntity<Map<String, Object>> chat(@RequestBody ChatRequest chatRequest,
-                                                     @RequestAttribute("userId") Long userId) {
-        log.info("[POST /api/chat] message={}, userId={}", chatRequest.getMessage(), userId);
-
-        String message = chatAppService.handleMessageSync(
-                chatRequest.getMessage(),
-                userId,
-                chatRequest.getConversationId()
-        );
-        Map<String, Object> body = new HashMap<>();
-        body.put("message", message);
-        return ResponseEntity.ok(body);
     }
 }

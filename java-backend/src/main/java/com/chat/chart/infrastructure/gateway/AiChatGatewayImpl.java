@@ -71,7 +71,7 @@ public class AiChatGatewayImpl implements AiChatGateway {
 
             Request httpRequest = new Request.Builder()
                     .url(fullUrl)
-                    .post(RequestBody.create(body, MediaType.parse("application/json; charset=utf-8")))
+                    .post(RequestBody.create(MediaType.parse("application/json; charset=utf-8"), body))
                     .build();
 
             Response response = httpClient.newCall(httpRequest).execute();
@@ -84,7 +84,8 @@ public class AiChatGatewayImpl implements AiChatGateway {
                 return;
             }
 
-            try (ResponseBody responseBody = response.body()) {
+            try (response) {
+                ResponseBody responseBody = response.body();
                 if (responseBody == null) {
                     log.error("[AI Chat] 响应体为空");
                     callback.complete();

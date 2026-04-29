@@ -191,7 +191,7 @@ const selectConversation = async (conversationId: string) => {
     })
     const data = await res.json()
     const msgs: Message[] = data.map((m: MessageDTO) => ({
-      id: m.requestId,
+      id: `${m.requestId}_${m.role}`,
       role: m.role,
       content: m.content,
       timestamp: new Date(m.createdAt).getTime()
