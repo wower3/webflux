@@ -45,44 +45,49 @@ function createSSEConnection(
     const decoder = new TextDecoder()
     let buffer = ''
 
-    while (!ended) {
-      const { done, value } = await reader.read()
-      if (done) break
+    try {
+      while (!ended) {
+        const { done, value } = await reader.read()
+        if (done) break
 
-      buffer += decoder.decode(value, { stream: true })
+        buffer += decoder.decode(value, { stream: true })
 
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
 
-      for (const line of lines) {
-        if (!line.startsWith('data:')) continue
+        for (const line of lines) {
+          if (!line.startsWith('data:')) continue
 
-        const dataStr = line.slice(5).trim()
-        if (!dataStr) continue
+          const dataStr = line.slice(5).trim()
+          if (!dataStr) continue
 
-        try {
-          const event = JSON.parse(dataStr)
-          if (event.type === 'end') {
-            ended = true
-            callbacks.onEnd()
-          } else if (event.type === 'final_output') {
-            callbacks.onFinalOutput(String(event.data ?? ''))
-          } else {
-            callbacks.onContent(String(event.data ?? ''))
+          try {
+            const event = JSON.parse(dataStr)
+            if (event.type === 'end') {
+              ended = true
+              callbacks.onEnd()
+            } else if (event.type === 'final_output') {
+              callbacks.onFinalOutput(String(event.data ?? ''))
+            } else {
+              callbacks.onContent(String(event.data ?? ''))
+            }
+          } catch {
+            callbacks.onContent(dataStr)
           }
-        } catch {
-          callbacks.onContent(dataStr)
         }
       }
+      if (!ended) {
+        callbacks.onEnd()
+      }
+    } catch (err) {
+      if (!ended) {
+        ended = true
+        callbacks.onEnd()
+        callbacks.onError(err instanceof Error ? err : new Error(String(err)))
+      }
     }
-    if (!ended) {
-      callbacks.onEnd()
-    }
-  }).catch((err) => {
-    if (!ended) {
-      ended = true
-      callbacks.onError(err instanceof Error ? err : new Error(String(err)))
-    }
+  }).catch(() => {
+    // 已在 then 内部处理
   })
 
   return close

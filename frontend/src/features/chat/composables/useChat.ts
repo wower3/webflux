@@ -221,6 +221,59 @@ export function useChat(conversationId: Ref<string | null>) {
     )
   }
 
+  const handleCardConfirm = async (payload: {
+    cardInfo: { key: string; label: string; value: string }[]
+    apiEndpoint: string
+    displayTitle: string
+  }) => {
+    if (isLoading.value || !payload.apiEndpoint) return
+
+    const userMsg: Message = {
+      id: `msg_${messageIdCounter++}`,
+      role: 'user',
+      content: `[确认] ${payload.displayTitle}`,
+      timestamp: Date.now()
+    }
+    messages.value.push(userMsg)
+
+    const assistantMsg: Message = {
+      id: `msg_${messageIdCounter++}`,
+      role: 'assistant',
+      content: '',
+      embeds: [],
+      timestamp: Date.now(),
+      isStreaming: true
+    }
+    messages.value.push(assistantMsg)
+    isLoading.value = true
+    triggerRef(messages)
+
+    try {
+      const body: Record<string, string> = {}
+      for (const item of payload.cardInfo) {
+        body[item.key] = item.value
+      }
+
+      const res = await fetch(payload.apiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('chat_token') || ''}`
+        },
+        body: JSON.stringify(body)
+      })
+
+      const data = await res.json()
+      assistantMsg.content = '```json\n' + JSON.stringify(data, null, 2) + '\n```'
+    } catch {
+      assistantMsg.content = '[查询失败，请重试]'
+    } finally {
+      assistantMsg.isStreaming = false
+      isLoading.value = false
+      triggerRef(messages)
+    }
+  }
+
   watch(messages, scrollToBottom, { deep: true })
 
   return {
@@ -230,6 +283,7 @@ export function useChat(conversationId: Ref<string | null>) {
     handleSend,
     handleRemoveCard,
     handleUpdateCard,
+    handleCardConfirm,
     loadMessages,
     clearMessages
   }

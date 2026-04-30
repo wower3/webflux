@@ -173,7 +173,12 @@ const createConversation = async () => {
     })
     const data = await res.json()
     if (res.ok) {
-      await fetchConversations()
+      conversations.value.unshift({
+        conversationId: data.conversationId,
+        createdAt: data.createdAt,
+        messageCount: 0,
+        active: true
+      })
       currentConversationId.value = data.conversationId
       chatViewRef.value?.clearMessages()
       showSidebar.value = false

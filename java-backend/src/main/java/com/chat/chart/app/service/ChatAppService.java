@@ -6,6 +6,7 @@ import com.chat.chart.domain.gateway.ConversationGateway;
 import com.chat.chart.domain.gateway.MessageGateway;
 import com.chat.chart.domain.model.ChatMessage;
 import com.chat.chart.domain.util.IdGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +15,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 聊天应用服务
@@ -82,7 +84,7 @@ public class ChatAppService {
         emitter.onError(e -> log.warn("[Chat] SSE连接异常: {}", e.getMessage()));
 
         chatExecutor.execute(() -> {
-            StringBuilder contentAccumulator = new StringBuilder();
+            AtomicReference<String> finalOutputRef = new AtomicReference<>();
             try {
                 // 1. 确定会话ID：已提供则复用，否则自动创建新会话
                 String finalConversationId = determineConversationId(userId, conversationId);
@@ -103,31 +105,31 @@ public class ChatAppService {
                         userId, finalConversationId, requestId, message.length());
 
                 // 6. 调用AI网关获取流式回复，同时累积完整文本内容用于后续持久化
-                aiChatGateway.chatStream(fullMessage, finalConversationId, new AiStreamCallback() {
+                aiChatGateway.chatStream(fullMessage, new AiStreamCallback() {
+                    
                     @Override
                     public void sendEvent(String data) {
                         try {
                             emitter.send(SseEmitter.event().data(data));
-                            try {
-                                com.fasterxml.jackson.databind.JsonNode node = objectMapper.readTree(data);
-                                if ("content".equals(node.path("type").asText())) {
-                                    contentAccumulator.append(node.path("data").asText(""));
-                                }
-                            } catch (Exception e) {
-                                contentAccumulator.append(data);
+                            // 解析是否为最终输出事件
+                            JsonNode node = objectMapper.readTree(data);
+                            if ("final_output".equals(node.path("type").asText())) {
+                                finalOutputRef.set(node.path("data").asText());
+                                log.debug("[Chat] 捕获最终输出：requestId={}, length={}",
+                                        requestId, finalOutputRef.get().length());
                             }
                         } catch (Exception e) {
-                            log.debug("[Chat] SSE发送失败(客户端可能已断开): {}", e.getMessage());
+                            log.debug("[Chat] SSE发送失败(客户端可能已断开)：{}", e.getMessage());
                         }
                     }
 
                     @Override
                     public void complete() {
-                        String assistantContent = contentAccumulator.toString();
+                        String assistantContent = finalOutputRef.get();
                         if (!assistantContent.trim().isEmpty()) {
                             try {
                                 messageGateway.saveMessage(requestId, finalConversationId, "assistant", assistantContent);
-                                log.info("[Chat] 保存AI回复: conversationId={}, requestId={}, contentLength={}",
+                                log.info("[Chat] 保存AI回复：conversationId={}, requestId={}, contentLength={}",
                                         finalConversationId, requestId, assistantContent.length());
                             } catch (Exception e) {
                                 log.error("[Chat] 保存AI回复失败", e);
@@ -136,7 +138,7 @@ public class ChatAppService {
                         try {
                             emitter.complete();
                         } catch (Exception e) {
-                            log.debug("[Chat] emitter已关闭: {}", e.getMessage());
+                            log.debug("[Chat] emitter已关闭：{}", e.getMessage());
                         }
                     }
 
@@ -145,21 +147,22 @@ public class ChatAppService {
                         try {
                             emitter.completeWithError(e);
                         } catch (Exception ex) {
-                            log.debug("[Chat] emitter已关闭: {}", ex.getMessage());
+                            log.debug("[Chat] emitter已关闭：{}", ex.getMessage());
                         }
                     }
                 });
-            } catch (Exception e) {
-                log.error("[Chat] 处理消息失败", e);
-                try {
-                    emitter.completeWithError(e);
-                } catch (Exception ex) {
-                    log.debug("[Chat] emitter已关闭: {}", ex.getMessage());
-                }
-            }
-        });
 
-        return emitter;
+                } catch (Exception e) {
+                    log.error("[Chat] 处理消息失败", e);
+                    try {
+                        emitter.completeWithError(e);
+                    } catch (Exception ex) {
+                        log.debug("[Chat] emitter已关闭：{}", ex.getMessage());
+                    }
+                }
+            });
+
+                return emitter;
     }
 
     /**

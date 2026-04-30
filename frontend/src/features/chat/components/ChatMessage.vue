@@ -8,7 +8,7 @@
         <template v-for="(segment, index) in contentSegments" :key="segment.type === 'chart' ? (segment.data as ChartData)?.id || `chart-${index}` : segment.type === 'card' ? (segment.data as CardData)?.cardId || `card-${index}` : `text-${index}`">
           <MarkdownRenderer v-if="segment.type === 'text'" :content="segment.content || ''" :isStreaming="isStreaming" />
           <ChartRenderer v-else-if="segment.type === 'chart' && segment.data" :chart="segment.data as ChartData" />
-          <CardRenderer v-else-if="segment.type === 'card' && segment.data" :card="segment.data as CardData" @remove="handleRemoveCard" @update="handleUpdateCard" />
+          <CardRenderer v-else-if="segment.type === 'card' && segment.data" :card="segment.data as CardData" @remove="handleRemoveCard" @update="handleUpdateCard" @confirm="emit('confirmCard', $event)" />
         </template>
         <span v-if="isStreaming" class="cursor">|</span>
       </div>
@@ -36,6 +36,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   removeCard: [cardId: string]
   updateCard: [card: CardData]
+  confirmCard: [payload: { cardInfo: CardInfoItem[]; apiEndpoint: string; displayTitle: string }]
 }>()
 
 const handleRemoveCard = (cardId: string) => {

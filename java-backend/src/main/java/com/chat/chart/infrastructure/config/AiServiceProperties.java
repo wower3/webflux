@@ -26,8 +26,11 @@ import org.springframework.stereotype.Component;
 public class AiServiceProperties {
 
     /** AI服务的基础URL地址 */
-    private String url = "http://aiml-pub.aisp.test.abc/agent-api/workflow-agent-1-a852be77";
+    private String url = "http://localhost:9999";
 
+     /** AI初始化接口的路径后缀，拼接在url之后 */
+     private String initApi = "/chatabc/init_session";
+    
     /** AI聊天接口的路径后缀，拼接在url之后 */
     private String chatApi = "/chatabc/chat";
 

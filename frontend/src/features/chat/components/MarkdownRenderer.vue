@@ -37,6 +37,16 @@ const md = new MarkdownIt({
   }
 })
 
+// 所有链接在新标签页打开
+const defaultRender = md.renderer.rules.link_open || function (tokens: any, idx: any, options: any, _env: any, self: any) {
+  return self.renderToken(tokens, idx, options)
+}
+md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
+  tokens[idx].attrSet('target', '_blank')
+  tokens[idx].attrSet('rel', 'noopener noreferrer')
+  return defaultRender(tokens, idx, options, env, self)
+}
+
 const renderedHtml = computed(() => {
   if (props.isStreaming || !props.content) return ''
   return md.render(props.content)

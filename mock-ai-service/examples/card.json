@@ -1,0 +1,4 @@
+{
+  "content": "请确认以下查询条件：\n\n{\"type\":\"card\",\"cardId\":\"card_query_001\",\"cardName\":\"query_confirm\",\"displayTitle\":\"数据查询确认\",\"cardInfo\":[{\"key\":\"name\",\"label\":\"姓名\",\"value\":\"张三\"},{\"key\":\"phone\",\"label\":\"电话\",\"value\":\"138****1234\"},{\"key\":\"date_range\",\"label\":\"查询日期\",\"value\":\"2026-01-01 至 2026-04-30\"}],\"buttons\":[{\"actionId\":\"edit\",\"label\":\"修改\"},{\"actionId\":\"confirm\",\"label\":\"确认\",\"apiEndpoint\":\"/api/query/data\"},{\"actionId\":\"cancel\",\"label\":\"取消\"}]}\n\n请点击确认按钮提交查询，或点击修改调整查询条件。",
+  "delay_ms": 50
+}

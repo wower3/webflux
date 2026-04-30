@@ -10,6 +10,7 @@
         :is-streaming="msg.isStreaming"
         @remove-card="handleRemoveCard"
         @update-card="handleUpdateCard"
+        @confirm-card="handleCardConfirm"
       />
     </div>
     <GuidedPrompts />
@@ -28,7 +29,7 @@ const props = defineProps<{
   conversationId?: string | null
 }>()
 
-const { messages, isLoading, messagesRef, handleSend, handleRemoveCard, handleUpdateCard, loadMessages, clearMessages } = useChat(toRef(() => props.conversationId ?? null))
+const { messages, isLoading, messagesRef, handleSend, handleRemoveCard, handleUpdateCard, handleCardConfirm, loadMessages, clearMessages } = useChat(toRef(() => props.conversationId ?? null))
 
 const sendMessage = (text: string) => {
   handleSend(text)

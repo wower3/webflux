@@ -21,6 +21,6 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
 ai-service:
-  url: http://aiml-pub.aisp.test.abc/agent-api/workflow-agent-1-a852be77
+  url: http://localhost:9999
   chat-api: /chatabc/chat
   timeout: 90000

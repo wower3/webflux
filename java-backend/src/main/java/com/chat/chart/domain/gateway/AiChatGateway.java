@@ -18,8 +18,7 @@ public interface AiChatGateway {
      * </p>
      *
      * @param message   用户消息内容
-     * @param sessionId 会话ID，用于上下文关联
      * @param callback  流式事件回调
      */
-    void chatStream(String message, String sessionId, AiStreamCallback callback);
+    void chatStream(String message, AiStreamCallback callback);
 }

@@ -44,6 +44,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   remove: [cardId: string]
   update: [card: CardData]
+  confirm: [payload: { cardInfo: CardInfoItem[]; apiEndpoint: string; displayTitle: string }]
 }>()
 
 const isEditing = ref(false)
@@ -91,8 +92,11 @@ const handleAction = (btn: CardButton) => {
       break
 
     case 'confirm':
-      console.log('[CardRenderer] 发送请求到:', btn.apiEndpoint)
-      console.log('[CardRenderer] 请求数据:', props.card)
+      emit('confirm', {
+        cardInfo: props.card.cardInfo,
+        apiEndpoint: btn.apiEndpoint || '',
+        displayTitle: props.card.displayTitle
+      })
       break
 
     case 'cancel':

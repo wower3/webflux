@@ -24,7 +24,7 @@ import java.util.List;
 public class ChatReqData {
 
     /** 会话ID，用于关联上下文 */
-    @JsonProperty("sessionId")
+    @JsonProperty("session_id")
     private String sessionId;
 
     /** 用户消息文本 */
