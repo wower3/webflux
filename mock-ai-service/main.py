@@ -45,7 +45,7 @@ async def mock_chat(request: Request):
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
-@app.post("/chatabc/init")
+@app.post("/chatabc/init_session")
 async def mock_init(request: Request):
     return {"session_id": "mock-001", "status": "ok"}
 

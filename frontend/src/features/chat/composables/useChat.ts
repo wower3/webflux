@@ -263,8 +263,15 @@ export function useChat(conversationId: Ref<string | null>) {
         body: JSON.stringify(body)
       })
 
-      const data = await res.json()
-      assistantMsg.content = '```json\n' + JSON.stringify(data, null, 2) + '\n```'
+      const text = await res.text()
+      let displayContent: string
+      try {
+        const data = JSON.parse(text)
+        displayContent = '```json\n' + JSON.stringify(data, null, 2) + '\n```'
+      } catch {
+        displayContent = text
+      }
+      assistantMsg.content = displayContent
     } catch {
       assistantMsg.content = '[查询失败，请重试]'
     } finally {

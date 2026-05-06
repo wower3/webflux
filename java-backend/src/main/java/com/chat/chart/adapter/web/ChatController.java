@@ -85,4 +85,10 @@ public class ChatController {
                 chatRequest.getConversationId()
         );
     }
+
+    @PostMapping("/api/datahub/old-stat/complaint")
+    public String complaint(@RequestBody Map<String, Object> cardInfo) {
+        log.info("[POST /api/datahub/old-stat/complaint] cardInfo={}", cardInfo);
+        return "/datahub/old-stat/complaint/2238730974744936450?id=2238730974744936450";
+    }
 }
