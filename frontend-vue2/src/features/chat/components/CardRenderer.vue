@@ -34,81 +34,67 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref } from 'vue'
-import type { CardData, CardButton } from '../types'
-
-const props = defineProps<{
-  card: CardData
-}>()
-
-const emit = defineEmits<{
-  remove: [cardId: string]
-  update: [card: CardData]
-  confirm: [payload: { cardInfo: CardInfoItem[]; apiEndpoint: string; displayTitle: string }]
-}>()
-
-const isEditing = ref(false)
-const editValues = ref<Record<string, string>>({})
-const confirmed = ref(false)
-
-const getButtonClass = (actionId: string) => {
-  switch (actionId) {
-    case 'confirm':
-      return 'btn-primary'
-    case 'cancel':
-      return 'btn-secondary'
-    case 'edit':
-      return 'btn-edit'
-    default:
-      return ''
-  }
-}
-
-const saveEdit = () => {
-  const updatedCard = {
-    ...props.card,
-    cardInfo: props.card.cardInfo.map(item => ({
-      ...item,
-      value: editValues.value[item.key] || item.value
-    }))
-  }
-  console.log('[CardRenderer] 保存编辑:', updatedCard)
-  emit('update', updatedCard)
-  isEditing.value = false
-}
-
-const cancelEdit = () => {
-  editValues.value = {}
-  isEditing.value = false
-}
-
-const handleAction = (btn: CardButton) => {
-  switch (btn.actionId) {
-    case 'edit':
-      editValues.value = {}
-      props.card.cardInfo.forEach(item => {
-        editValues.value[item.key] = item.value
+<script>
+export default {
+  name: 'CardRenderer',
+  props: {
+    card: { type: Object, required: true }
+  },
+  data: function () {
+    return {
+      isEditing: false,
+      editValues: {},
+      confirmed: false
+    }
+  },
+  methods: {
+    getButtonClass: function (actionId) {
+      switch (actionId) {
+        case 'confirm': return 'btn-primary'
+        case 'cancel': return 'btn-secondary'
+        case 'edit': return 'btn-edit'
+        default: return ''
+      }
+    },
+    saveEdit: function () {
+      var self = this
+      var updatedCard = Object.assign({}, self.card, {
+        cardInfo: self.card.cardInfo.map(function (item) {
+          return Object.assign({}, item, {
+            value: self.editValues[item.key] || item.value
+          })
+        })
       })
-      isEditing.value = true
-      break
-
-    case 'confirm':
-      confirmed.value = true
-      emit('confirm', {
-        cardInfo: props.card.cardInfo,
-        apiEndpoint: btn.apiEndpoint || '',
-        displayTitle: props.card.displayTitle
-      })
-      break
-
-    case 'cancel':
-      console.log('[CardRenderer] 移除卡片:', props.card.cardId)
-      emit('remove', props.card.cardId)
-      break
-
-    default:
-      console.log('[CardRenderer] 未知操作:', btn.actionId)
+      self.$emit('update', updatedCard)
+      self.isEditing = false
+    },
+    cancelEdit: function () {
+      this.editValues = {}
+      this.isEditing = false
+    },
+    handleAction: function (btn) {
+      var self = this
+      switch (btn.actionId) {
+        case 'edit':
+          self.editValues = {}
+          self.card.cardInfo.forEach(function (item) {
+            self.$set(self.editValues, item.key, item.value)
+          })
+          self.isEditing = true
+          break
+        case 'confirm':
+          self.confirmed = true
+          self.$emit('confirm', {
+            cardInfo: self.card.cardInfo,
+            apiEndpoint: btn.apiEndpoint || '',
+            displayTitle: self.card.displayTitle
+          })
+          break
+        case 'cancel':
+          self.$emit('remove', self.card.cardId)
+          break
+      }
+    }
   }
 }
 </script>

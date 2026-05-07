@@ -257,8 +257,7 @@ export function useChat(conversationId: Ref<string | null>) {
       const res = await fetch(payload.apiEndpoint, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('chat_token') || ''}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
       })

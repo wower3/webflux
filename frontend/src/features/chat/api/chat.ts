@@ -1,4 +1,4 @@
-const getToken = (): string => localStorage.getItem('chat_token') || ''
+const getUserId = (): string => '1'
 
 export interface StreamCallbacks {
   onContent: (content: string) => void
@@ -25,8 +25,7 @@ function createSSEConnection(
   fetch(url, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getToken()}`
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(body),
     signal: abortController.signal
@@ -105,5 +104,5 @@ export function sendChatStream(
   if (conversationId) {
     body.conversationId = conversationId
   }
-  return createSSEConnection('/api/chat/stream', body, callbacks)
+  return createSSEConnection(`/api/chat/stream?userId=${getUserId()}`, body, callbacks)
 }

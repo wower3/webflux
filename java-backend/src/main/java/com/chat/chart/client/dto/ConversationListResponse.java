@@ -1,0 +1,18 @@
+package com.chat.chart.client.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+/**
+ * 会话列表响应DTO
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ConversationListResponse {
+
+    private List<ConversationDTO> conversations;
+}

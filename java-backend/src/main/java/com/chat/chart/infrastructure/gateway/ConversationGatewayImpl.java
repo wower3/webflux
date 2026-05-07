@@ -118,6 +118,19 @@ public class ConversationGatewayImpl implements ConversationGateway {
         );
     }
 
+    @Override
+    public Conversation findByConversationIdAndUserId(String conversationId, Long userId) {
+        try {
+            return jdbcTemplate.queryForObject(
+                    "SELECT conversation_id, user_id, created_at FROM conversation WHERE conversation_id = ? AND user_id = ?",
+                    new Object[]{conversationId, userId},
+                    new ConversationRowMapper()
+            );
+        } catch (EmptyResultDataAccessException e) {
+            return null;
+        }
+    }
+
     /**
      * 会话结果集映射器
      * <p>

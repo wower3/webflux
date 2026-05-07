@@ -1,5 +1,6 @@
 package com.chat.chart.app.service;
 
+import com.chat.chart.client.api.ChatAppServiceI;
 import com.chat.chart.domain.gateway.AiChatGateway;
 import com.chat.chart.domain.gateway.AiStreamCallback;
 import com.chat.chart.domain.gateway.ConversationGateway;
@@ -31,7 +32,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * </p>
  */
 @Service
-public class ChatAppService {
+public class ChatAppService implements ChatAppServiceI {
 
     private static final Logger log = LoggerFactory.getLogger(ChatAppService.class);
 
@@ -77,6 +78,7 @@ public class ChatAppService {
      * @param conversationId 会话ID（可为null，为null时自动创建新会话）
      * @return SseEmitter，用于流式推送AI响应
      */
+    @Override
     public SseEmitter handleMessage(String message, Long userId, String conversationId) {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
 

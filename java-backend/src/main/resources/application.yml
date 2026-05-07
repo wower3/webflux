@@ -1,6 +1,9 @@
 server:
   port: 8080
 
+auth:
+  enabled: false
+
 spring:
   application:
     name: chat-chart-api

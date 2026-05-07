@@ -1,7 +1,7 @@
 package com.chat.chart.adapter.web;
 
-import com.chat.chart.app.dto.ChatRequest;
-import com.chat.chart.app.service.ChatAppService;
+import com.chat.chart.client.api.ChatAppServiceI;
+import com.chat.chart.client.dto.ChatRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -13,26 +13,17 @@ import java.util.Map;
 
 /**
  * 聊天控制器
- * <p>
- * 提供聊天相关的API接口，包括根路径信息、健康检查和流式聊天（SSE）。
- * </p>
  *
- * @see ChatAppService
+ * @see ChatAppServiceI
  */
 @RestController
 public class ChatController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
 
-    /** 聊天应用服务，处理消息并生成AI响应 */
-    private final ChatAppService chatAppService;
+    private final ChatAppServiceI chatAppService;
 
-    /**
-     * 构造方法，注入聊天服务
-     *
-     * @param chatAppService 聊天应用服务
-     */
-    public ChatController(ChatAppService chatAppService) {
+    public ChatController(ChatAppServiceI chatAppService) {
         this.chatAppService = chatAppService;
     }
 
@@ -75,7 +66,7 @@ public class ChatController {
     @PostMapping(value = "/api/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStream(
             @RequestBody ChatRequest chatRequest,
-            @RequestAttribute("userId") Long userId) {
+            @RequestParam("userId") Long userId) {
 
         log.info("[POST /api/chat/stream] message={}, userId={}", chatRequest.getMessage(), userId);
 

@@ -24,4 +24,6 @@ public interface ConversationGateway {
     int countMessagesByConversationId(String conversationId);
 
     List<ChatMessage> findMessagesByConversationId(String conversationId);
+
+    Conversation findByConversationIdAndUserId(String conversationId, Long userId);
 }

@@ -1,6 +1,6 @@
 package com.chat.chart.infrastructure.gateway;
 
-import com.chat.chart.app.dto.InitSessionData;
+import com.chat.chart.infrastructure.gateway.model.InitSessionData;
 import com.chat.chart.domain.gateway.AiChatGateway;
 import com.chat.chart.domain.gateway.AiStreamCallback;
 import com.chat.chart.infrastructure.config.AiServiceProperties;

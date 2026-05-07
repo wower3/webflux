@@ -1,7 +1,9 @@
 package com.chat.chart.app.service;
 
-import com.chat.chart.app.dto.ConversationDTO;
-import com.chat.chart.app.dto.ConversationListResponse;
+import com.chat.chart.client.api.ConversationAppServiceI;
+import com.chat.chart.client.dto.ConversationDTO;
+import com.chat.chart.client.dto.ConversationListResponse;
+import com.chat.chart.client.dto.MessageDTO;
 import com.chat.chart.domain.gateway.ConversationGateway;
 import com.chat.chart.domain.model.ChatMessage;
 import com.chat.chart.domain.model.Conversation;
@@ -12,13 +14,14 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
  * 会话应用服务
  */
 @Service
-public class ConversationAppService {
+public class ConversationAppService implements ConversationAppServiceI {
 
     private static final Logger log = LoggerFactory.getLogger(ConversationAppService.class);
 
@@ -28,6 +31,7 @@ public class ConversationAppService {
         this.conversationGateway = conversationGateway;
     }
 
+    @Override
     public ConversationDTO createConversation(Long userId) {
         String conversationId = IdGenerator.newConversationId();
         conversationGateway.saveConversation(conversationId, userId);
@@ -41,6 +45,7 @@ public class ConversationAppService {
         return dto;
     }
 
+    @Override
     public ConversationListResponse listConversations(Long userId) {
         List<Conversation> conversations = conversationGateway.findByUserId(userId);
         List<ConversationDTO> dtos = new ArrayList<>();
@@ -57,7 +62,24 @@ public class ConversationAppService {
         return new ConversationListResponse(dtos);
     }
 
-    public List<ChatMessage> getConversationMessages(String conversationId) {
-        return conversationGateway.findMessagesByConversationId(conversationId);
+    @Override
+    public List<MessageDTO> getConversationMessages(String conversationId, Long userId) {
+        Conversation conv = conversationGateway.findByConversationIdAndUserId(conversationId, userId);
+        if (conv == null) {
+            log.warn("[Conversation] 会话不存在或不属于该用户: conversationId={}, userId={}", conversationId, userId);
+            return Collections.emptyList();
+        }
+        List<ChatMessage> messages = conversationGateway.findMessagesByConversationId(conversationId);
+        List<MessageDTO> dtos = new ArrayList<>();
+        for (ChatMessage msg : messages) {
+            MessageDTO dto = new MessageDTO();
+            dto.setRequestId(msg.getRequestId());
+            dto.setConversationId(msg.getConversationId());
+            dto.setRole(msg.getRole());
+            dto.setContent(msg.getContent());
+            dto.setCreatedAt(msg.getCreatedAt());
+            dtos.add(dto);
+        }
+        return dtos;
     }
 }

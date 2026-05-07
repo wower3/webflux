@@ -10,7 +10,7 @@
       </button>
     </div>
     <div class="panel-body">
-      <Transition name="sidebar">
+      <transition name="sidebar">
         <div v-if="showSidebar" class="panel-sidebar">
           <button class="new-chat-btn" @click="createConversation">
             <i class="fa fa-plus"></i>
@@ -33,113 +33,113 @@
             <div v-if="conversations.length === 0" class="empty-hint">暂无对话</div>
           </div>
         </div>
-      </Transition>
+      </transition>
 
       <div class="chat-area">
-        <ChatView ref="chatViewRef" :conversation-id="currentConversationId" @send-from-guide="handleSendFromGuide" />
+        <ChatView ref="chatViewRef" :conversation-id="currentConversationId" />
       </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, onMounted } from 'vue'
+<script>
 import ChatView from './ChatView.vue'
-import type { Message, MessageDTO, ConversationItem } from '../types'
 
-const emit = defineEmits<{
-  close: []
-}>()
-
-const getUserId = () => '1'
-
-const showSidebar = ref(false)
-const conversations = ref<ConversationItem[]>([])
-const currentConversationId = ref<string | null>(null)
-const chatViewRef = ref<InstanceType<typeof ChatView>>()
-
-const initChat = async () => {
-  await fetchConversations()
-  await createConversation()
-}
-
-const fetchConversations = async () => {
-  try {
-    const res = await fetch(`/api/conversations?userId=${getUserId()}`)
-    const data = await res.json()
-    conversations.value = data.conversations || []
-  } catch {
-    // silently fail
-  }
-}
-
-const createConversation = async () => {
-  try {
-    const res = await fetch(`/api/conversation?userId=${getUserId()}`, {
-      method: 'POST'
-    })
-    const data = await res.json()
-    if (res.ok) {
-      conversations.value.unshift({
-        conversationId: data.conversationId,
-        createdAt: data.createdAt,
-        messageCount: 0,
-        active: true
-      })
-      currentConversationId.value = data.conversationId
-      chatViewRef.value?.clearMessages()
-      showSidebar.value = false
+export default {
+  name: 'ChatPanel',
+  components: { ChatView },
+  data: function () {
+    return {
+      showSidebar: false,
+      conversations: [],
+      currentConversationId: null
     }
-  } catch {
-    // silently fail
+  },
+  mounted: function () {
+    this.initChat()
+  },
+  methods: {
+    getUserId: function () {
+      return '1'
+    },
+    initChat: function () {
+      var self = this
+      self.fetchConversations().then(function () {
+        self.createConversation()
+      })
+    },
+    fetchConversations: function () {
+      var self = this
+      return fetch('/api/conversations?userId=' + self.getUserId()).then(function (res) {
+        return res.json()
+      }).then(function (data) {
+        self.conversations = data.conversations || []
+      }).catch(function () {})
+    },
+    createConversation: function () {
+      var self = this
+      fetch('/api/conversation?userId=' + self.getUserId(), {
+        method: 'POST'
+      }).then(function (res) {
+        return res.json().then(function (data) {
+          return { ok: res.ok, data: data }
+        })
+      }).then(function (result) {
+        if (result.ok) {
+          self.conversations.unshift({
+            conversationId: result.data.conversationId,
+            createdAt: result.data.createdAt,
+            messageCount: 0,
+            active: true
+          })
+          self.currentConversationId = result.data.conversationId
+          self.$refs.chatViewRef.clearMessages()
+          self.showSidebar = false
+        }
+      }).catch(function () {
+        // silently fail
+      })
+    },
+    selectConversation: function (conversationId) {
+      var self = this
+      self.currentConversationId = conversationId
+      fetch('/api/conversation/' + conversationId + '/messages?userId=' + self.getUserId()).then(function (res) {
+        return res.json()
+      }).then(function (data) {
+        var msgs = data.map(function (m) {
+          return {
+            id: m.requestId + '_' + m.role,
+            role: m.role,
+            content: m.content,
+            timestamp: new Date(m.createdAt).getTime()
+          }
+        })
+        self.$refs.chatViewRef.loadMessages(msgs)
+        self.showSidebar = false
+      }).catch(function () {
+        // silently fail
+      })
+    },
+    formatConvName: function (dateStr) {
+      if (!dateStr) return '新对话'
+      var d = new Date(dateStr)
+      var pad = function (n) { return String(n).padStart(2, '0') }
+      return pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes())
+    },
+    formatRelativeTime: function (dateStr) {
+      if (!dateStr) return ''
+      var d = new Date(dateStr)
+      var now = new Date()
+      var diffMs = now.getTime() - d.getTime()
+      var diffMin = Math.floor(diffMs / 60000)
+      if (diffMin < 1) return '刚刚'
+      if (diffMin < 60) return diffMin + '分钟前'
+      var diffHour = Math.floor(diffMin / 60)
+      if (diffHour < 24) return diffHour + '小时前'
+      return (d.getMonth() + 1) + '/' + d.getDate()
+    }
   }
 }
-
-const selectConversation = async (conversationId: string) => {
-  currentConversationId.value = conversationId
-  try {
-    const res = await fetch(`/api/conversation/${conversationId}/messages?userId=${getUserId()}`)
-    const data = await res.json()
-    const msgs: Message[] = data.map((m: MessageDTO) => ({
-      id: `${m.requestId}_${m.role}`,
-      role: m.role,
-      content: m.content,
-      timestamp: new Date(m.createdAt).getTime()
-    }))
-    chatViewRef.value?.loadMessages(msgs)
-    showSidebar.value = false
-  } catch {
-    // silently fail
-  }
-}
-
-const handleSendFromGuide = (text: string) => {
-  chatViewRef.value?.sendMessage(text)
-}
-
-const formatConvName = (dateStr: string) => {
-  if (!dateStr) return '新对话'
-  const d = new Date(dateStr)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-const formatRelativeTime = (dateStr: string) => {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  const now = new Date()
-  const diffMs = now.getTime() - d.getTime()
-  const diffMin = Math.floor(diffMs / 60000)
-  if (diffMin < 1) return '刚刚'
-  if (diffMin < 60) return `${diffMin}分钟前`
-  const diffHour = Math.floor(diffMin / 60)
-  if (diffHour < 24) return `${diffHour}小时前`
-  return `${d.getMonth() + 1}/${d.getDate()}`
-}
-
-onMounted(async () => {
-  await initChat()
-})
 </script>
 
 <style scoped>
@@ -279,14 +279,37 @@ onMounted(async () => {
   padding: 32px 0;
 }
 
-/* 聊天区 */
 .chat-area {
   flex: 1;
   overflow: hidden;
 }
 
-/* 侧栏动画 */
 .sidebar-enter-active { transition: width 0.2s ease, opacity 0.2s ease; }
 .sidebar-leave-active { transition: width 0.15s ease, opacity 0.15s ease; }
-.sidebar-enter-from, .sidebar-leave-to { width: 0; opacity: 0; overflow: hidden; }
+.sidebar-enter, .sidebar-leave-to { width: 0; opacity: 0; overflow: hidden; }
+</style>
+}
+
+.conv-time {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 3px;
+  padding-left: 19px;
+}
+
+.empty-hint {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+  padding: 32px 0;
+}
+
+.chat-area {
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar-enter-active { transition: width 0.2s ease, opacity 0.2s ease; }
+.sidebar-leave-active { transition: width 0.15s ease, opacity 0.15s ease; }
+.sidebar-enter, .sidebar-leave-to { width: 0; opacity: 0; overflow: hidden; }
 </style>
