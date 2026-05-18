@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chat.chart.infrastructure.mapper.ConversationMapper">
+
+    <!-- 结果映射：column是数据库字段（下划线），property是Java属性（驼峰） -->
+    <resultMap id="BaseResultMap" type="com.chat.chart.infrastructure.dataobject.ConversationDO">
+        <id column="conversation_id" property="conversationId" jdbcType="VARCHAR"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础字段列表（数据库字段，下划线命名） -->
+    <sql id="Base_Column_List">
+        conversation_id, user_id, created_at
+    </sql>
+
+    <!-- 根据用户ID查询最新会话 -->
+    <select id="selectLatestByUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM conversation
+        <where>
+            <if test="userId != null">
+                user_id = #{userId}
+            </if>
+        </where>
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询用户所有会话 -->
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM conversation
+        <where>
+            <if test="userId != null">
+                user_id = #{userId}
+            </if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 新建会话 -->
+    <insert id="insert">
+        INSERT INTO conversation
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="conversationId != null and conversationId != ''">
+                conversation_id,
+            </if>
+            <if test="userId != null">
+                user_id,
+            </if>
+            <if test="createdAt != null">
+                created_at,
+            </if>
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            <if test="conversationId != null and conversationId != ''">
+                #{conversationId},
+            </if>
+            <if test="userId != null">
+                #{userId},
+            </if>
+            <if test="createdAt != null">
+                #{createdAt},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 统计会话消息数 -->
+    <select id="countMessagesByConversationId" resultType="int">
+        SELECT COUNT(*)
+        FROM chat_message
+        <where>
+            <if test="conversationId != null and conversationId != ''">
+                conversation_id = #{conversationId}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据会话ID和用户ID查询会话 -->
+    <select id="selectByConversationIdAndUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM conversation
+        <where>
+            <if test="conversationId != null and conversationId != ''">
+                AND conversation_id = #{conversationId}
+            </if>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+        </where>
+    </select>
+
+</mapper>

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chat.chart.infrastructure.mapper.ChatMessageMapper">
+
+    <!-- 结果映射：column是数据库字段（下划线），property是Java属性（驼峰） -->
+    <resultMap id="BaseResultMap" type="com.chat.chart.infrastructure.dataobject.ChatMessageDO">
+        <result column="request_id" property="requestId" jdbcType="VARCHAR"/>
+        <result column="conversation_id" property="conversationId" jdbcType="VARCHAR"/>
+        <result column="role" property="role" jdbcType="VARCHAR"/>
+        <result column="content" property="content" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础字段列表（数据库字段，下划线命名） -->
+    <sql id="Base_Column_List">
+        request_id, conversation_id, role, content, created_at
+    </sql>
+
+    <!-- 插入消息 -->
+    <insert id="insert">
+        INSERT INTO chat_message
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="requestId != null and requestId != ''">
+                request_id,
+            </if>
+            <if test="conversationId != null and conversationId != ''">
+                conversation_id,
+            </if>
+            <if test="role != null and role != ''">
+                role,
+            </if>
+            <if test="content != null and content != ''">
+                content,
+            </if>
+            <if test="createdAt != null">
+                created_at,
+            </if>
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            <if test="requestId != null and requestId != ''">
+                #{requestId},
+            </if>
+            <if test="conversationId != null and conversationId != ''">
+                #{conversationId},
+            </if>
+            <if test="role != null and role != ''">
+                #{role},
+            </if>
+            <if test="content != null and content != ''">
+                #{content},
+            </if>
+            <if test="createdAt != null">
+                #{createdAt},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 查询最近N个requestId -->
+    <select id="selectRecentRequestIds" resultType="java.lang.String">
+        SELECT request_id
+        FROM chat_message
+        <where>
+            <if test="conversationId != null and conversationId != ''">
+                conversation_id = #{conversationId}
+            </if>
+        </where>
+        GROUP BY request_id
+        ORDER BY MAX(created_at) DESC
+        <if test="maxRequests != null">
+            LIMIT #{maxRequests}
+        </if>
+    </select>
+
+    <!-- 根据conversationId和requestIds查询消息 -->
+    <select id="selectByIds" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM chat_message
+        <where>
+            <if test="conversationId != null and conversationId != ''">
+                AND conversation_id = #{conversationId}
+            </if>
+            <if test="requestIds != null and requestIds.size() > 0">
+                AND request_id IN
+                <foreach collection="requestIds" item="requestId" open="(" separator="," close=")">
+                    #{requestId}
+                </foreach>
+            </if>
+        </where>
+        ORDER BY created_at ASC
+    </select>
+
+    <!-- 根据会话ID查询所有消息 -->
+    <select id="selectByConversationId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM chat_message
+        <where>
+            <if test="conversationId != null and conversationId != ''">
+                conversation_id = #{conversationId}
+            </if>
+        </where>
+        ORDER BY created_at ASC
+    </select>
+
+</mapper>

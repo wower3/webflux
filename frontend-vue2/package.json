@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "vue": "2.6.12",
-    "element-ui": "2.15.14",
+    "element-ui": "2.10.1",
     "echarts": "5.4.3",
     "markdown-it": "14.1.1",
     "highlight.js": "11.9.0"

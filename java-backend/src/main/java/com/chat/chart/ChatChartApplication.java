@@ -2,6 +2,7 @@ package com.chat.chart;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -13,12 +14,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * </p>
  */
 @SpringBootApplication
+@MapperScan("com.chat.chart.infrastructure.mapper")
 public class ChatChartApplication {
 
-    private static final Logger log = LoggerFactory.getLogger(ChatChartApplication.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChatChartApplication.class);
 
     public static void main(String[] args) {
         SpringApplication.run(ChatChartApplication.class, args);
-        log.info("Chat Chart API is running!");
+        LOGGER.info("Chat Chart API is running!");
     }
 }

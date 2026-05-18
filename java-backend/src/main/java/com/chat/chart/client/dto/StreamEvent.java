@@ -15,6 +15,9 @@ public class StreamEvent {
     @JsonProperty("data")
     private Object data;
 
+    /**
+     * 构建文本内容类型事件
+     */
     public static StreamEvent content(String content) {
         StreamEvent event = new StreamEvent();
         event.setType(StreamEventType.CONTENT.getValue());
@@ -22,6 +25,9 @@ public class StreamEvent {
         return event;
     }
 
+    /**
+     * 构建流结束事件
+     */
     public static StreamEvent end() {
         StreamEvent event = new StreamEvent();
         event.setType(StreamEventType.END.getValue());

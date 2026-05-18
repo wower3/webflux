@@ -34,24 +34,16 @@ import java.util.concurrent.atomic.AtomicReference;
 @Service
 public class ChatAppService implements ChatAppServiceI {
 
-    private static final Logger log = LoggerFactory.getLogger(ChatAppService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChatAppService.class);
 
     private static final long SSE_TIMEOUT_MS = 60000L;
 
     private static final int CONTEXT_MESSAGE_ROUNDS = 2;
 
-    /** 会话数据网关 */
     private final ConversationGateway conversationGateway;
-
-    /** 消息数据网关 */
     private final MessageGateway messageGateway;
-
-    /** AI聊天网关 */
     private final AiChatGateway aiChatGateway;
-
-    /** 聊天专用线程池 */
     private final Executor chatExecutor;
-
     private final ObjectMapper objectMapper;
 
     public ChatAppService(ConversationGateway conversationGateway,
@@ -82,11 +74,10 @@ public class ChatAppService implements ChatAppServiceI {
     public SseEmitter handleMessage(String message, Long userId, String conversationId) {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
 
-        emitter.onTimeout(() -> log.warn("[Chat] SSE超时, userId={}", userId));
-        emitter.onError(e -> log.warn("[Chat] SSE连接异常: {}", e.getMessage()));
+        emitter.onTimeout(() -> LOGGER.warn("[Chat] SSE超时, userId={}", userId));
+        emitter.onError(e -> LOGGER.warn("[Chat] SSE连接异常: {}", e.getMessage()));
 
         chatExecutor.execute(() -> {
-            AtomicReference<String> finalOutputRef = new AtomicReference<>();
             try {
                 // 1. 确定会话ID：已提供则复用，否则自动创建新会话
                 String finalConversationId = determineConversationId(userId, conversationId);
@@ -103,68 +94,19 @@ public class ChatAppService implements ChatAppServiceI {
                 // 5. 将上下文和用户输入组装为完整提示词
                 String fullMessage = assembleMessage(contextMessages, message);
 
-                log.info("[Chat] 处理消息: userId={}, conversationId={}, requestId={}, messageLength={}",
+                LOGGER.info("[Chat] 处理消息: userId={}, conversationId={}, requestId={}, messageLength={}",
                         userId, finalConversationId, requestId, message.length());
 
                 // 6. 调用AI网关获取流式回复，同时累积完整文本内容用于后续持久化
-                aiChatGateway.chatStream(fullMessage, new AiStreamCallback() {
-                    
-                    @Override
-                    public void sendEvent(String data) {
-                        try {
-                            emitter.send(SseEmitter.event().data(data));
-                            // 解析是否为最终输出事件
-                            JsonNode node = objectMapper.readTree(data);
-                            if ("final_output".equals(node.path("type").asText())) {
-                                finalOutputRef.set(node.path("data").asText());
-                                log.debug("[Chat] 捕获最终输出：requestId={}, length={}",
-                                        requestId, finalOutputRef.get().length());
-                            }
-                        } catch (Exception e) {
-                            log.debug("[Chat] SSE发送失败(客户端可能已断开)：{}", e.getMessage());
-                        }
-                    }
+                aiChatGateway.chatStream(fullMessage, new ChatStreamCallback(
+                        emitter, objectMapper, requestId, finalConversationId, messageGateway));
+            } catch (Exception e) {
+                LOGGER.error("[Chat] 处理消息失败", e);
+                safeCompleteWithError(emitter, e);
+            }
+        });
 
-                    @Override
-                    public void complete() {
-                        String assistantContent = finalOutputRef.get();
-                        if (!assistantContent.trim().isEmpty()) {
-                            try {
-                                messageGateway.saveMessage(requestId, finalConversationId, "assistant", assistantContent);
-                                log.info("[Chat] 保存AI回复：conversationId={}, requestId={}, contentLength={}",
-                                        finalConversationId, requestId, assistantContent.length());
-                            } catch (Exception e) {
-                                log.error("[Chat] 保存AI回复失败", e);
-                            }
-                        }
-                        try {
-                            emitter.complete();
-                        } catch (Exception e) {
-                            log.debug("[Chat] emitter已关闭：{}", e.getMessage());
-                        }
-                    }
-
-                    @Override
-                    public void error(Throwable e) {
-                        try {
-                            emitter.completeWithError(e);
-                        } catch (Exception ex) {
-                            log.debug("[Chat] emitter已关闭：{}", ex.getMessage());
-                        }
-                    }
-                });
-
-                } catch (Exception e) {
-                    log.error("[Chat] 处理消息失败", e);
-                    try {
-                        emitter.completeWithError(e);
-                    } catch (Exception ex) {
-                        log.debug("[Chat] emitter已关闭：{}", ex.getMessage());
-                    }
-                }
-            });
-
-                return emitter;
+        return emitter;
     }
 
     /**
@@ -172,20 +114,15 @@ public class ChatAppService implements ChatAppServiceI {
      * <p>
      * 如果提供了有效的conversationId则直接使用，否则创建新会话并返回新ID。
      * </p>
-     *
-     * @param userId         用户ID
-     * @param conversationId 前端传入的会话ID（可为null或空）
-     * @return 确定后的会话ID
      */
     private String determineConversationId(Long userId, String conversationId) {
         if (conversationId != null && !conversationId.trim().isEmpty()) {
             return conversationId;
         }
 
-        // 创建新会话
         String newConversationId = IdGenerator.newConversationId();
         conversationGateway.saveConversation(newConversationId, userId);
-        log.info("[Chat] 创建新会话: conversationId={}", newConversationId);
+        LOGGER.info("[Chat] 创建新会话: conversationId={}", newConversationId);
         return newConversationId;
     }
 
@@ -195,10 +132,6 @@ public class ChatAppService implements ChatAppServiceI {
      * 将历史对话拼接为"历史对话"格式，再附加用户当前输入，
      * 构成发送给AI的完整提示词。
      * </p>
-     *
-     * @param contextMessages 历史上下文消息列表
-     * @param userInput       用户当前输入
-     * @return 组装后的完整提示词字符串
      */
     private String assembleMessage(List<ChatMessage> contextMessages, String userInput) {
         if (contextMessages == null || contextMessages.isEmpty()) {
@@ -208,7 +141,6 @@ public class ChatAppService implements ChatAppServiceI {
         StringBuilder sb = new StringBuilder();
         sb.append("历史对话：\n");
 
-        // 将每条历史消息按角色格式化
         for (ChatMessage msg : contextMessages) {
             String roleName = "user".equals(msg.getRole()) ? "用户" : "助手";
             sb.append(roleName).append("：").append(msg.getContent()).append("\n");
@@ -216,5 +148,78 @@ public class ChatAppService implements ChatAppServiceI {
 
         sb.append("用户输入：").append(userInput);
         return sb.toString();
+    }
+
+    private static void safeCompleteWithError(SseEmitter emitter, Throwable e) {
+        try {
+            emitter.completeWithError(e);
+        } catch (Exception ex) {
+            LOGGER.debug("[Chat] emitter已关闭：{}", ex.getMessage());
+        }
+    }
+
+    /**
+     * AI流式回调实现，负责SSE事件转发、最终输出捕获和AI回复持久化
+     */
+    private static class ChatStreamCallback implements AiStreamCallback {
+
+        private final SseEmitter emitter;
+        private final ObjectMapper objectMapper;
+        private final String requestId;
+        private final String conversationId;
+        private final MessageGateway messageGateway;
+        private final AtomicReference<String> finalOutputRef = new AtomicReference<>();
+
+        ChatStreamCallback(SseEmitter emitter, ObjectMapper objectMapper,
+                           String requestId, String conversationId, MessageGateway messageGateway) {
+            this.emitter = emitter;
+            this.objectMapper = objectMapper;
+            this.requestId = requestId;
+            this.conversationId = conversationId;
+            this.messageGateway = messageGateway;
+        }
+
+        @Override
+        public void sendEvent(String data) {
+            try {
+                emitter.send(SseEmitter.event().data(data));
+                JsonNode node = objectMapper.readTree(data);
+                if ("final_output".equals(node.path("type").asText())) {
+                    finalOutputRef.set(node.path("data").asText());
+                    LOGGER.debug("[Chat] 捕获最终输出：requestId={}, length={}",
+                            requestId, finalOutputRef.get().length());
+                }
+            } catch (Exception e) {
+                LOGGER.debug("[Chat] SSE发送失败(客户端可能已断开)：{}", e.getMessage());
+            }
+        }
+
+        @Override
+        public void complete() {
+            String content = finalOutputRef.get();
+            if (content != null && !content.trim().isEmpty()) {
+                saveAssistantReply(content);
+            }
+            try {
+                emitter.complete();
+            } catch (Exception e) {
+                LOGGER.debug("[Chat] emitter已关闭：{}", e.getMessage());
+            }
+        }
+
+        @Override
+        public void error(Throwable e) {
+            safeCompleteWithError(emitter, e);
+        }
+
+        private void saveAssistantReply(String content) {
+            try {
+                messageGateway.saveMessage(requestId, conversationId, "assistant", content);
+                LOGGER.info("[Chat] 保存AI回复：conversationId={}, requestId={}, contentLength={}",
+                        conversationId, requestId, content.length());
+            } catch (Exception e) {
+                LOGGER.error("[Chat] 保存AI回复失败", e);
+            }
+        }
     }
 }

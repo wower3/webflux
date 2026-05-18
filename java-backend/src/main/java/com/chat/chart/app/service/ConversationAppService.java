@@ -23,7 +23,7 @@ import java.util.List;
 @Service
 public class ConversationAppService implements ConversationAppServiceI {
 
-    private static final Logger log = LoggerFactory.getLogger(ConversationAppService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConversationAppService.class);
 
     private final ConversationGateway conversationGateway;
 
@@ -35,7 +35,7 @@ public class ConversationAppService implements ConversationAppServiceI {
     public ConversationDTO createConversation(Long userId) {
         String conversationId = IdGenerator.newConversationId();
         conversationGateway.saveConversation(conversationId, userId);
-        log.info("[Conversation] 创建会话: userId={}, conversationId={}", userId, conversationId);
+        LOGGER.info("[Conversation] 创建会话: userId={}, conversationId={}", userId, conversationId);
 
         ConversationDTO dto = new ConversationDTO();
         dto.setConversationId(conversationId);
@@ -66,7 +66,7 @@ public class ConversationAppService implements ConversationAppServiceI {
     public List<MessageDTO> getConversationMessages(String conversationId, Long userId) {
         Conversation conv = conversationGateway.findByConversationIdAndUserId(conversationId, userId);
         if (conv == null) {
-            log.warn("[Conversation] 会话不存在或不属于该用户: conversationId={}, userId={}", conversationId, userId);
+            LOGGER.warn("[Conversation] 会话不存在或不属于该用户: conversationId={}, userId={}", conversationId, userId);
             return Collections.emptyList();
         }
         List<ChatMessage> messages = conversationGateway.findMessagesByConversationId(conversationId);

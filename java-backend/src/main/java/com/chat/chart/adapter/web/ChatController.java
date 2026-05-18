@@ -19,7 +19,7 @@ import java.util.Map;
 @RestController
 public class ChatController {
 
-    private static final Logger log = LoggerFactory.getLogger(ChatController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChatController.class);
 
     private final ChatAppServiceI chatAppService;
 
@@ -68,7 +68,7 @@ public class ChatController {
             @RequestBody ChatRequest chatRequest,
             @RequestParam("userId") Long userId) {
 
-        log.info("[POST /api/chat/stream] message={}, userId={}", chatRequest.getMessage(), userId);
+        LOGGER.info("[POST /api/chat/stream] message={}, userId={}", chatRequest.getMessage(), userId);
 
         return chatAppService.handleMessage(
                 chatRequest.getMessage(),
@@ -79,7 +79,7 @@ public class ChatController {
 
     @PostMapping("/api/datahub/old-stat/complaint")
     public String complaint(@RequestBody Map<String, Object> cardInfo) {
-        log.info("[POST /api/datahub/old-stat/complaint] cardInfo={}", cardInfo);
+        LOGGER.info("[POST /api/datahub/old-stat/complaint] cardInfo={}", cardInfo);
         return "/datahub/old-stat/complaint/2238730974744936450?id=2238730974744936450";
     }
 }

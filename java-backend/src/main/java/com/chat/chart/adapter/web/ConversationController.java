@@ -19,7 +19,7 @@ import java.util.List;
 @RequestMapping("/api")
 public class ConversationController {
 
-    private static final Logger log = LoggerFactory.getLogger(ConversationController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConversationController.class);
 
     private final ConversationAppServiceI conversationAppService;
 
@@ -29,13 +29,13 @@ public class ConversationController {
 
     @PostMapping("/conversation")
     public ConversationDTO createConversation(@RequestParam("userId") Long userId) {
-        log.info("[Conversation] 创建会话: userId={}", userId);
+        LOGGER.info("[Conversation] 创建会话: userId={}", userId);
         return conversationAppService.createConversation(userId);
     }
 
     @GetMapping("/conversations")
     public ConversationListResponse listConversations(@RequestParam("userId") Long userId) {
-        log.info("[Conversation] 列出会话: userId={}", userId);
+        LOGGER.info("[Conversation] 列出会话: userId={}", userId);
         return conversationAppService.listConversations(userId);
     }
 
@@ -43,7 +43,7 @@ public class ConversationController {
     public List<MessageDTO> getConversationMessages(
             @PathVariable String conversationId,
             @RequestParam("userId") Long userId) {
-        log.info("[Conversation] 获取消息: conversationId={}, userId={}", conversationId, userId);
+        LOGGER.info("[Conversation] 获取消息: conversationId={}, userId={}", conversationId, userId);
         return conversationAppService.getConversationMessages(conversationId, userId);
     }
 }
