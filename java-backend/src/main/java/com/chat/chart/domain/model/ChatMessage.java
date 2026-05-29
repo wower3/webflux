@@ -30,4 +30,10 @@ public class ChatMessage {
 
     /** 消息创建时间 */
     private LocalDateTime createdAt;
+
+    /** 采纳状态：0-未采纳，1-已采纳，2-默认 */
+    private String adoptionStatus;
+
+    /** 调用是否成功：1-成功，0-失败 */
+    private String isSuccess;
 }

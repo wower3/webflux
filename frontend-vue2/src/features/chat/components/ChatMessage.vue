@@ -11,6 +11,26 @@
           <CardRenderer v-else-if="segment.type === 'card' && segment.data" :key="'card-' + index" :card="segment.data" @remove="handleRemoveCard" @update="handleUpdateCard" @confirm="$emit('confirm-card', $event)" />
         </template>
         <span v-if="isStreaming" class="cursor">|</span>
+        <div v-if="showAdoption" class="adoption-actions">
+          <button
+            class="adoption-btn"
+            :class="{ active: localAdoptionStatus === '1', dimmed: localAdoptionStatus === '0' }"
+            :disabled="localAdoptionStatus !== '2'"
+            @click="handleAdopt('1')"
+            title="采纳"
+          >
+            <i class="fa fa-thumbs-up"></i>
+          </button>
+          <button
+            class="adoption-btn"
+            :class="{ active: localAdoptionStatus === '0', dimmed: localAdoptionStatus === '1' }"
+            :disabled="localAdoptionStatus !== '2'"
+            @click="handleAdopt('0')"
+            title="未采纳"
+          >
+            <i class="fa fa-thumbs-down"></i>
+          </button>
+        </div>
       </div>
       <div class="avatar" v-if="role === 'user'">
         <i class="fa fa-user"></i>
@@ -34,8 +54,19 @@ export default {
     content: { type: String, required: true },
     embeds: { type: Array, default: function () { return [] } },
     isStreaming: { type: Boolean, default: false },
+    requestId: { type: String, default: null },
+    adoptionStatus: { type: String, default: '2' },
+    isSuccess: { type: String, default: null }
+  },
+  data: function () {
+    return {
+      localAdoptionStatus: this.adoptionStatus || '2'
+    }
   },
   computed: {
+    showAdoption: function () {
+      return this.role === 'assistant' && !this.isStreaming && this.requestId && this.isSuccess === '1'
+    },
     contentSegments: function () {
       var self = this
 
@@ -104,6 +135,19 @@ export default {
     },
     handleUpdateCard: function (card) {
       this.$emit('update-card', card)
+    },
+    handleAdopt: function (status) {
+      if (this.localAdoptionStatus !== '2') return
+      var prev = this.localAdoptionStatus
+      this.localAdoptionStatus = status
+      var self = this
+      fetch('/api/chat/adoption', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId: self.requestId, adoptionStatus: status })
+      }).catch(function () {
+        self.localAdoptionStatus = prev
+      })
     }
   }
 }
@@ -211,5 +255,53 @@ export default {
 @keyframes blink {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }
+}
+
+.adoption-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.adoption-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #6b7280;
+  transition: all 0.2s;
+}
+
+.adoption-btn:hover:not(:disabled) {
+  border-color: #9ca3af;
+  color: #374151;
+  background: #f9fafb;
+}
+
+.adoption-btn.active {
+  color: #fff;
+  border-color: transparent;
+  cursor: default;
+}
+
+.adoption-btn.active[title="采纳"] {
+  background: #10b981;
+}
+
+.adoption-btn.active[title="未采纳"] {
+  background: #ef4444;
+}
+
+.adoption-btn.dimmed {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.adoption-btn:disabled {
+  cursor: default;
 }
 </style>

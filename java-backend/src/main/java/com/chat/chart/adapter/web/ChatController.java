@@ -1,11 +1,16 @@
 package com.chat.chart.adapter.web;
 
 import com.chat.chart.client.api.ChatAppServiceI;
+import com.chat.chart.client.dto.AdoptionRequest;
 import com.chat.chart.client.dto.ChatRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.HashMap;
@@ -81,5 +86,21 @@ public class ChatController {
     public String complaint(@RequestBody Map<String, Object> cardInfo) {
         LOGGER.info("[POST /api/datahub/old-stat/complaint] cardInfo={}", cardInfo);
         return "/datahub/old-stat/complaint/2238730974744936450?id=2238730974744936450";
+    }
+
+    /**
+     * 更新一轮对话的采纳状态
+     *
+     * @param adoptionRequest 采纳请求体，包含requestId和adoptionStatus
+     * @return 操作结果
+     */
+    @PostMapping("/api/chat/adoption")
+    public Map<String, Object> updateAdoptionStatus(@RequestBody AdoptionRequest adoptionRequest) {
+        LOGGER.info("[POST /api/chat/adoption] requestId={}, adoptionStatus={}",
+                adoptionRequest.getRequestId(), adoptionRequest.getAdoptionStatus());
+        chatAppService.updateAdoptionStatus(adoptionRequest.getRequestId(), adoptionRequest.getAdoptionStatus());
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        return result;
     }
 }

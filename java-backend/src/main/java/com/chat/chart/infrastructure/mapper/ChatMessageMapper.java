@@ -45,4 +45,13 @@ public interface ChatMessageMapper {
      * @return 消息数据对象列表
      */
     List<ChatMessageDO> selectByConversationId(@Param("conversationId") String conversationId);
+
+    /**
+     * 更新指定requestId下所有消息的采纳状态
+     *
+     * @param requestId      请求ID（一轮对话的标识）
+     * @param adoptionStatus 采纳状态（0-未采纳，1-已采纳，2-默认）
+     * @return 影响行数
+     */
+    int updateAdoptionStatusByRequestId(@Param("requestId") String requestId, @Param("adoptionStatus") String adoptionStatus);
 }

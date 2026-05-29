@@ -51,7 +51,7 @@ function createSSEConnection(url, body, callbacks) {
             var event = JSON.parse(dataStr)
             if (event.type === 'end') {
               ended = true
-              callbacks.onEnd()
+              callbacks.onEnd(event.data)
             } else if (event.type === 'final_output') {
               callbacks.onFinalOutput(String(event.data != null ? event.data : ''))
             } else {

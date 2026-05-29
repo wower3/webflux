@@ -3,13 +3,20 @@ package com.chat.chart.infrastructure.gateway;
 import com.chat.chart.infrastructure.gateway.model.InitSessionData;
 import com.chat.chart.domain.gateway.AiChatGateway;
 import com.chat.chart.domain.gateway.AiStreamCallback;
+import com.chat.chart.infrastructure.config.AiRateLimiter;
 import com.chat.chart.infrastructure.config.AiServiceProperties;
 import com.chat.chart.infrastructure.gateway.model.BaseAgentRequest;
 import com.chat.chart.infrastructure.gateway.model.ChatReqData;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.*;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import okio.BufferedSource;
 
 import org.slf4j.Logger;
@@ -41,10 +48,12 @@ public class AiChatGatewayImpl implements AiChatGateway {
     private final AiServiceProperties properties;
     private final ObjectMapper objectMapper;
     private final OkHttpClient httpClient;
+    private final AiRateLimiter aiRateLimiter;
 
-    public AiChatGatewayImpl(AiServiceProperties properties, ObjectMapper objectMapper) {
+    public AiChatGatewayImpl(AiServiceProperties properties, ObjectMapper objectMapper, AiRateLimiter aiRateLimiter) {
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.aiRateLimiter = aiRateLimiter;
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(properties.getTimeout(), TimeUnit.MILLISECONDS)
@@ -55,9 +64,10 @@ public class AiChatGatewayImpl implements AiChatGateway {
     @Override
     public void chatStream(String message, AiStreamCallback callback) {
         try {
-            String sessionId = initSession();
+            String cookieValue = UUID.randomUUID().toString().replace("-", "");
+            String sessionId = initSession(cookieValue);
             String jsonBody = buildChatRequest(sessionId, message);
-            Response response = executeChatRequest(jsonBody);
+            Response response = executeChatRequest(jsonBody, cookieValue);
 
             if (!response.isSuccessful()) {
                 LOGGER.error("[AI Chat] 调用外部AI服务失败, HTTP {}", response.code());
@@ -102,13 +112,14 @@ public class AiChatGatewayImpl implements AiChatGateway {
     /**
      * 发送HTTP请求连接AI服务
      */
-    private Response executeChatRequest(String jsonBody) throws IOException {
+    private Response executeChatRequest(String jsonBody, String cookieValue) throws IOException {
         Request httpRequest = new Request.Builder()
                 .url(properties.getUrl() + properties.getChatApi())
                 .post(RequestBody.create(jsonBody, MediaType.get("application/json; charset=utf-8")))
                 .header("Accept", "text/event-stream")
                 .header("Cache-Control", "no-cache")
                 .header("X-Accel-Buffering", "no")
+                .header("Cookie", "sessionId=" + cookieValue)
                 .build();
 
         Response response = httpClient.newCall(httpRequest).execute();
@@ -187,7 +198,7 @@ public class AiChatGatewayImpl implements AiChatGateway {
     /**
      * 初始化AI会话，获取session_id
      */
-    private String initSession() {
+    private String initSession(String cookieValue) {
         try {
             InitSessionData initSessionData = InitSessionData.builder()
                     .configVariables(new ArrayList<>())
@@ -203,6 +214,7 @@ public class AiChatGatewayImpl implements AiChatGateway {
             Request request = new Request.Builder()
                     .url(properties.getUrl() + properties.getInitApi())
                     .post(RequestBody.create(initBody, MediaType.get("application/json")))
+                    .header("Cookie", "sessionId=" + cookieValue)
                     .build();
 
             try (Response response = httpClient.newCall(request).execute()) {
@@ -238,6 +250,12 @@ public class AiChatGatewayImpl implements AiChatGateway {
                     LOGGER.info("[AI Chat] 会话开始: {}", data);
                     break;
                 case "done":
+                    if (data.contains("BDC201704_0144002 is over requestLimit")) {
+                        LOGGER.warn("[AI Chat] 外部AI服务请求次数已达上限");
+                        aiRateLimiter.markBlocked();
+                        callback.error(new RuntimeException("外部AI服务请求次数已达上限，请稍后再试"));
+                        return true;
+                    }
                     LOGGER.info("[AI Chat] 流正常结束");
                     return true;
                 default:

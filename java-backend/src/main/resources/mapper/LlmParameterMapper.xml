@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chat.chart.infrastructure.mapper.LlmParameterMapper">
+
+    <!-- 根据key查询value -->
+    <select id="selectValueByKey" resultType="string">
+        SELECT llm_value
+        FROM llm_parameter
+        WHERE llm_key = #{llmKey}
+    </select>
+
+    <!-- 乐观锁更新（CAS），仅当旧值匹配时才更新 -->
+    <update id="casUpdate">
+        UPDATE llm_parameter
+        SET llm_value = #{newValue}
+        WHERE llm_key = #{llmKey}
+          AND llm_value = #{oldValue}
+    </update>
+
+    <!-- 幂等插入，仅当key不存在时插入，多pod并发安全 -->
+    <insert id="insertIfAbsent">
+        INSERT INTO llm_parameter (llm_key, llm_value)
+        SELECT #{llmKey}, #{llmValue}
+        FROM DUAL
+        WHERE NOT EXISTS (
+            SELECT 1 FROM llm_parameter WHERE llm_key = #{llmKey}
+        )
+    </insert>
+
+</mapper>

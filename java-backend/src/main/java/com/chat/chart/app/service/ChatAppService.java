@@ -5,8 +5,10 @@ import com.chat.chart.domain.gateway.AiChatGateway;
 import com.chat.chart.domain.gateway.AiStreamCallback;
 import com.chat.chart.domain.gateway.ConversationGateway;
 import com.chat.chart.domain.gateway.MessageGateway;
+import com.chat.chart.domain.model.AdoptionStatus;
 import com.chat.chart.domain.model.ChatMessage;
 import com.chat.chart.domain.util.IdGenerator;
+import com.chat.chart.infrastructure.config.AiRateLimiter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -45,17 +47,20 @@ public class ChatAppService implements ChatAppServiceI {
     private final AiChatGateway aiChatGateway;
     private final Executor chatExecutor;
     private final ObjectMapper objectMapper;
+    private final AiRateLimiter aiRateLimiter;
 
     public ChatAppService(ConversationGateway conversationGateway,
                           MessageGateway messageGateway,
                           AiChatGateway aiChatGateway,
-                          Executor chatExecutor,
-                          ObjectMapper objectMapper) {
+                          @org.springframework.beans.factory.annotation.Qualifier("chatExecutor") Executor chatExecutor,
+                          ObjectMapper objectMapper,
+                          AiRateLimiter aiRateLimiter) {
         this.conversationGateway = conversationGateway;
         this.messageGateway = messageGateway;
         this.aiChatGateway = aiChatGateway;
         this.chatExecutor = chatExecutor;
         this.objectMapper = objectMapper;
+        this.aiRateLimiter = aiRateLimiter;
     }
 
     /**
@@ -86,7 +91,7 @@ public class ChatAppService implements ChatAppServiceI {
                 String requestId = IdGenerator.newConversationId();
 
                 // 3. 持久化用户消息到数据库
-                messageGateway.saveMessage(requestId, finalConversationId, "user", message);
+                messageGateway.saveMessage(requestId, finalConversationId, "user", message, null);
 
                 // 4. 获取历史上下文消息（最近2个request的对话）
                 List<ChatMessage> contextMessages = messageGateway.findContextMessages(finalConversationId, CONTEXT_MESSAGE_ROUNDS);
@@ -97,7 +102,15 @@ public class ChatAppService implements ChatAppServiceI {
                 LOGGER.info("[Chat] 处理消息: userId={}, conversationId={}, requestId={}, messageLength={}",
                         userId, finalConversationId, requestId, message.length());
 
-                // 6. 调用AI网关获取流式回复，同时累积完整文本内容用于后续持久化
+                // 6. 限流检查
+                if (!aiRateLimiter.tryAcquire()) {
+                    emitter.send(SseEmitter.event().data("{\"type\":\"content\",\"data\":\"请求过于频繁，请稍后再试\"}"));
+                    emitter.send(SseEmitter.event().data("{\"type\":\"end\",\"data\":null}"));
+                    emitter.complete();
+                    return;
+                }
+
+                // 7. 调用AI网关获取流式回复，同时累积完整文本内容用于后续持久化
                 aiChatGateway.chatStream(fullMessage, new ChatStreamCallback(
                         emitter, objectMapper, requestId, finalConversationId, messageGateway));
             } catch (Exception e) {
@@ -124,6 +137,21 @@ public class ChatAppService implements ChatAppServiceI {
         conversationGateway.saveConversation(newConversationId, userId);
         LOGGER.info("[Chat] 创建新会话: conversationId={}", newConversationId);
         return newConversationId;
+    }
+
+    /**
+     * 更新一轮对话的采纳状态
+     * <p>
+     * 根据requestId更新该轮对话（user+assistant）中所有消息的采纳状态。
+     * </p>
+     *
+     * @param requestId      请求ID（一轮对话的标识）
+     * @param adoptionStatus 采纳状态（0-未采纳，1-已采纳，2-默认）
+     */
+    @Override
+    public void updateAdoptionStatus(String requestId, String adoptionStatus) {
+        LOGGER.info("[Chat] 更新采纳状态: requestId={}, adoptionStatus={}", requestId, adoptionStatus);
+        messageGateway.updateAdoptionStatus(requestId, adoptionStatus);
     }
 
     /**
@@ -182,8 +210,19 @@ public class ChatAppService implements ChatAppServiceI {
         @Override
         public void sendEvent(String data) {
             try {
-                emitter.send(SseEmitter.event().data(data));
                 JsonNode node = objectMapper.readTree(data);
+                if ("end".equals(node.path("type").asText())) {
+                    com.fasterxml.jackson.databind.node.ObjectNode enriched =
+                            (com.fasterxml.jackson.databind.node.ObjectNode) node;
+                    com.fasterxml.jackson.databind.node.ObjectNode dataNode =
+                            enriched.has("data") && enriched.get("data").isObject()
+                                    ? (com.fasterxml.jackson.databind.node.ObjectNode) enriched.get("data")
+                                    : enriched.putObject("data");
+                    dataNode.put("requestId", requestId);
+                    emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(enriched)));
+                } else {
+                    emitter.send(SseEmitter.event().data(data));
+                }
                 if ("final_output".equals(node.path("type").asText())) {
                     finalOutputRef.set(node.path("data").asText());
                     LOGGER.debug("[Chat] 捕获最终输出：requestId={}, length={}",
@@ -198,7 +237,7 @@ public class ChatAppService implements ChatAppServiceI {
         public void complete() {
             String content = finalOutputRef.get();
             if (content != null && !content.trim().isEmpty()) {
-                saveAssistantReply(content);
+                saveAssistantReply(content, "1");
             }
             try {
                 emitter.complete();
@@ -209,16 +248,22 @@ public class ChatAppService implements ChatAppServiceI {
 
         @Override
         public void error(Throwable e) {
+            String content = finalOutputRef.get();
+            if (content != null && !content.trim().isEmpty()) {
+                saveAssistantReply(content, "0");
+            } else {
+                saveAssistantReply("", "0");
+            }
             safeCompleteWithError(emitter, e);
         }
 
-        private void saveAssistantReply(String content) {
+        private void saveAssistantReply(String content, String isSuccess) {
             try {
-                messageGateway.saveMessage(requestId, conversationId, "assistant", content);
-                LOGGER.info("[Chat] 保存AI回复：conversationId={}, requestId={}, contentLength={}",
-                        conversationId, requestId, content.length());
-            } catch (Exception e) {
-                LOGGER.error("[Chat] 保存AI回复失败", e);
+                messageGateway.saveMessage(requestId, conversationId, "assistant", content, isSuccess);
+                LOGGER.info("[Chat] 保存AI回复：conversationId={}, requestId={}, isSuccess={}",
+                        conversationId, requestId, isSuccess);
+            } catch (Exception ex) {
+                LOGGER.error("[Chat] 保存AI回复失败", ex);
             }
         }
     }

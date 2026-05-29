@@ -16,4 +16,12 @@ public interface ChatAppServiceI {
      * @return SseEmitter，用于流式推送AI响应
      */
     SseEmitter handleMessage(String message, Long userId, String conversationId);
+
+    /**
+     * 更新一轮对话的采纳状态
+     *
+     * @param requestId      请求ID（一轮对话的标识）
+     * @param adoptionStatus 采纳状态（0-未采纳，1-已采纳，2-默认）
+     */
+    void updateAdoptionStatus(String requestId, String adoptionStatus);
 }

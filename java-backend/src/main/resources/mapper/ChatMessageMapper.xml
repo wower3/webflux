@@ -9,11 +9,13 @@
         <result column="role" property="role" jdbcType="VARCHAR"/>
         <result column="content" property="content" jdbcType="VARCHAR"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="adoption_status" property="adoptionStatus" jdbcType="VARCHAR"/>
+        <result column="is_success" property="isSuccess" jdbcType="VARCHAR"/>
     </resultMap>
 
     <!-- 基础字段列表（数据库字段，下划线命名） -->
     <sql id="Base_Column_List">
-        request_id, conversation_id, role, content, created_at
+        request_id, conversation_id, role, content, created_at, adoption_status, is_success
     </sql>
 
     <!-- 插入消息 -->
@@ -35,6 +37,9 @@
             <if test="createdAt != null">
                 created_at,
             </if>
+            <if test="isSuccess != null and isSuccess != ''">
+                is_success,
+            </if>
         </trim>
         <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
             <if test="requestId != null and requestId != ''">
@@ -51,6 +56,9 @@
             </if>
             <if test="createdAt != null">
                 #{createdAt},
+            </if>
+            <if test="isSuccess != null and isSuccess != ''">
+                #{isSuccess},
             </if>
         </trim>
     </insert>
@@ -102,5 +110,15 @@
         </where>
         ORDER BY created_at ASC
     </select>
+
+    <!-- 更新指定requestId下所有消息的采纳状态 -->
+    <update id="updateAdoptionStatusByRequestId">
+        UPDATE chat_message
+        SET adoption_status = #{adoptionStatus}
+        WHERE role = 'assistant'
+        <if test="requestId != null and requestId != ''">
+            AND request_id = #{requestId}
+        </if>
+    </update>
 
 </mapper>

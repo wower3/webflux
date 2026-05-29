@@ -17,6 +17,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 结构化图表数据自动解析
 - ECharts图表渲染（折线图、柱状图、饼图）
 - 卡片交互（确认/取消按钮）
+- 消息采纳/未采纳评价
+- 日维度统计（用户量、交易量、采纳率）
 
 ---
 
@@ -47,7 +49,10 @@ npm run dev
 
 ### 依赖服务
 - MySQL: `localhost:3306/chat_chart`，用户 `root`，密码 `123456`
-- AI服务: `http://localhost:9999/chatabc/chat`，超时 90s
+- AI服务: `http://localhost:9999`，两个接口：
+  - 初始化会话: `/chatabc/init_session`
+  - 聊天: `/chatabc/chat`
+- 超时: 90s
 - Mock AI服务: `mock-ai-service/` 目录下
 
 ---
@@ -59,28 +64,34 @@ webflux/
 ├── java-backend/                    # Spring Boot后端（COLA架构）
 │   └── src/main/java/com/chat/chart/
 │       ├── adapter/                 # 适配器层
-│       │   ├── config/              #   CorsConfig, AsyncConfig
-│       │   └── web/                 #   ChatController, ConversationController
+│       │   ├── config/              #   CorsConfig
+│       │   └── web/                 #   ChatController, ConversationController, GlobalExceptionHandler
 │       ├── app/                     # 应用层
-│       │   └── service/             #   ChatAppService, ConversationAppService
+│       │   └── service/             #   ChatAppService, ConversationAppService, StatService
 │       ├── client/                  # 客户端层
 │       │   ├── api/                 #   服务接口定义
-│       │   └── dto/                 #   DTO: ChatRequest, ConversationDTO, MessageDTO, StreamEvent
+│       │   └── dto/                 #   DTO: ChatRequest, ConversationDTO, StreamEvent, AdoptionRequest
 │       ├── domain/                  # 领域层
-│       │   ├── gateway/             #   网关接口 + AI流式回调
-│       │   ├── model/               #   领域模型: ChatMessage, Conversation
+│       │   ├── gateway/             #   网关接口 + AiStreamCallback
+│       │   ├── model/               #   领域模型: ChatMessage, Conversation, AdoptionStatus
 │       │   └── util/                #   IdGenerator
 │       └── infrastructure/          # 基础设施层
-│           ├── config/              #   MybatisPlusConfig, AiServiceProperties
+│           ├── config/              #   MybatisPlusConfig, AiServiceProperties, AiRateLimiter
 │           ├── dataobject/          #   DO: ChatMessageDO, ConversationDO
 │           ├── gateway/             #   网关实现: AiChatGatewayImpl(OkHttp SSE), ConversationGatewayImpl, MessageGatewayImpl
-│           ├── mapper/              #   MyBatis Mapper接口
-│           └── gateway/model/       #   AI请求模型
+│           ├── mapper/              #   MyBatis Mapper: ChatMessageMapper, ConversationMapper, LlmParameterMapper, StatMapper
+│           └── gateway/model/       #   AI请求模型: BaseAgentRequest, ChatReqData, InitSessionData
 │   └── src/main/resources/
 │       ├── application.yml
 │       └── mapper/                  #   MyBatis XML Mapper
 │           ├── ConversationMapper.xml
-│           └── ChatMessageMapper.xml
+│           ├── ChatMessageMapper.xml
+│           └── LlmParameterMapper.xml
+│
+├── stat-service/                    # 统计服务（待集成到java-backend）
+│   ├── StatService.java             #   日维度统计：用户量、交易量、采纳率
+│   ├── StatMapper.java              #   统计Mapper接口
+│   └── StatMapper.xml               #   统计SQL
 │
 ├── frontend/                        # Vue3前端 (Vite + TypeScript)
 │   └── src/features/chat/
@@ -112,13 +123,27 @@ webflux/
 - DO类: `@TableName` + `@TableField(fill=FieldFill.INSERT)` 自动填充 createdAt
 - Mapper接口: `@Mapper` + `@Param`，不使用 BaseMapper 自动CRUD
 - XML Mapper: `resultMap` + `sql片段` + `<where>` + `<if>` + `<foreach>`（对齐 xuanjiao2 项目风格）
+- **必传参数不加 `<if>` 条件**：如 `LlmParameterMapper` 中 `llmKey` 是必传的，直接用 `WHERE llm_key = #{llmKey}`，不加 `<if test="llmKey != null">` 防御，避免空值时生成错误SQL
 - 自动填充: `MybatisPlusConfig` 实现 `MetaObjectHandler`，INSERT时自动填充 createdAt
 - 分页插件: `PaginationInnerInterceptor`（MySQL）
 
-### AI流式调用
-- `AiChatGatewayImpl` 使用 OkHttp 调用外部AI接口
-- SSE流式响应逐行读取，通过 `AiStreamCallback` 回调
-- 异步执行: `@Async("chatExecutor")` 线程池
+### AI流式调用（两步流程）
+1. **init_session**: 先调用 `/chatabc/init_session` 获取 `session_id`
+2. **chat**: 再调用 `/chatabc/chat` 发送聊天请求，请求体中携带 `session_id`
+- 两个请求通过 `Cookie: sessionId=xxx` 头实现会话亲和性（确保路由到同一Pod）
+- `AiChatGatewayImpl` 使用 OkHttp SSE流式响应逐行读取，通过 `AiStreamCallback` 回调
+- 异步执行: `chatExecutor` 线程池（`ChatAppService` 构造器注入 `@Qualifier("chatExecutor") Executor`）
+
+### 限流机制（AiRateLimiter）
+- 基于数据库 `llm_parameter` 表的固定窗口限流器，每分钟最多15次请求
+- CAS（Compare-And-Swap）乐观锁保证多Pod间计数一致
+- `markBlocked()` 熔断：外部AI服务返回限流错误时标记当前分钟 blocked=true，阻止所有Pod后续请求
+- 初次投产无数据时自动插入初始行（`insertIfAbsent`），不会因缺数据导致服务不可用
+
+### 统计服务（stat-service）
+- `StatService` 提供日维度统计：用户量、交易量、采纳率
+- 时间范围：`baseDate-2日23:00 ~ baseDate-1日23:00`
+- 文件暂存在 `stat-service/` 目录，包名已对齐 `java-backend`
 
 ---
 
@@ -135,8 +160,11 @@ webflux/
 
 ### 数据流路径
 ```
-后端 AiChatGatewayImpl (OkHttp SSE)
-  ↓ 异步回调
+AiChatGatewayImpl.chatStream()
+  ↓ 1. initSession(cookieValue) → 获取session_id
+  ↓ 2. buildChatRequest(sessionId, message) → 构建请求体
+  ↓ 3. executeChatRequest(jsonBody, cookieValue) → OkHttp SSE
+  ↓ 异步回调 ChatStreamCallback
 ChatController → SSE事件流
   ↓ EventSource / fetch
 前端 ChatPanel → ChatView → ChatMessage
@@ -150,10 +178,9 @@ MarkdownRenderer + ChartRenderer + CardRenderer
 
 ### 后端SSE流式响应格式
 ```
-data: {"type":"content","data":"文本内容"}
-data: {"type":"chart","data":{"chartId":"xxx","type":"chart","subtype":"line","title":"xxx","data":{...}}}
-data: {"type":"card","data":{...}}
-data: {"type":"end","data":null}
+data: {"type":"content","data":"文本内容"}          # 增量内容
+data: {"type":"final_output","data":"完整输出"}      # 最终结构化输出（覆盖之前内容）
+data: {"type":"end","data":{"requestId":"xxx"}}      # 流结束，携带requestId
 ```
 
 ### 前端消息结构
@@ -178,7 +205,7 @@ interface Message {
 | `/api/conversation` | POST | 创建新会话 |
 | `/api/conversation/{id}/messages` | GET | 查询会话消息 |
 | `/api/chat/stream` | POST | SSE流式聊天 |
-| `/api/chat/stream/{conversationId}` | GET | SSE流式聊天（GET方式） |
+| `/api/chat/adoption` | POST | 更新消息采纳状态 `{requestId, adoptionStatus}` |
 
 ---
 
@@ -201,6 +228,19 @@ interface Message {
 - element-ui@2.10.1
 - echarts@5.4.3
 - @vue/cli-service@4.5.19
+- font-awesome@4.6.3（npm包引入，webpack自动打包字体文件）
+
+---
+
+## 测试规范
+
+### 后端测试
+修改Java后端代码后，**必须**通过实际启动服务验证：
+1. 若8080端口被占用，先 kill 占用进程
+2. `mvn spring-boot:run` 启动服务
+3. 确认日志输出 `Started ChatChartApplication` 无 ERROR
+4. 验证完成后 kill 掉服务
+5. **不要仅依赖 `mvn test` 单元测试作为验证通过的标准**，单元测试可能不加载Spring容器
 
 ---
 
@@ -215,5 +255,6 @@ interface Message {
 ### 前端代码
 - Vue3: Composition API + `<script setup>` + TypeScript
 - Vue2: Options API + JavaScript
+- Font Awesome图标通过 npm 包引入（`import 'font-awesome/css/font-awesome.min.css'`），不依赖 public 目录下的字体文件
 - userId 默认返回 `'1'`，无 localStorage 逻辑
 - 卡片确认后按钮永久禁用（组件内 local state）

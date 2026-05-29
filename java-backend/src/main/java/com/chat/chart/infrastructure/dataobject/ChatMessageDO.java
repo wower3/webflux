@@ -24,4 +24,8 @@ public class ChatMessageDO {
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
+
+    private String adoptionStatus;
+
+    private String isSuccess;
 }

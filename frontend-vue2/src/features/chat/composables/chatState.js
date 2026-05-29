@@ -123,7 +123,13 @@ export function createChatState(getConversationId) {
     state.messages = msgs.map(function (msg) {
       if (msg.role !== 'assistant') return msg
       var result = parseEmbeds(msg.content)
-      return Object.assign({}, msg, { content: result.cleanContent, embeds: result.embeds.length > 0 ? result.embeds : undefined })
+      return Object.assign({}, msg, {
+        content: result.cleanContent,
+        embeds: result.embeds.length > 0 ? result.embeds : undefined,
+        requestId: msg.requestId || null,
+        adoptionStatus: msg.adoptionStatus || '2',
+        isSuccess: msg.isSuccess || null
+      })
     })
     state.isLoading = false
     messageIdCounter = msgs.length
@@ -162,7 +168,10 @@ export function createChatState(getConversationId) {
       content: '',
       embeds: [],
       timestamp: Date.now(),
-      isStreaming: true
+      isStreaming: true,
+      requestId: null,
+      adoptionStatus: '2',
+      isSuccess: null
     }
     state.messages.push(assistantMsg)
     state.isLoading = true
@@ -196,15 +205,20 @@ export function createChatState(getConversationId) {
       }
     }
 
-    var endCallback = function () {
+    var endCallback = function (data) {
       assistantMsg.isStreaming = false
+      assistantMsg.isSuccess = '1'
       state.isLoading = false
       currentStreamCloser = null
+      if (data && data.requestId) {
+        assistantMsg.requestId = data.requestId
+      }
     }
 
     var errorCallback = function () {
       assistantMsg.content += '\n[请求失败，请重试]'
       assistantMsg.isStreaming = false
+      assistantMsg.isSuccess = '0'
       state.isLoading = false
       currentStreamCloser = null
     }
