@@ -1,5 +1,9 @@
 <template>
   <div class="guided-prompts">
+    <div class="history-hint">
+      <i class="fa fa-info-circle"></i>
+      <span>当前对话保留最近5轮历史上下文</span>
+    </div>
     <div class="category-list">
       <div
         v-for="(cat, i) in CATEGORIES"
@@ -36,27 +40,23 @@ var CATEGORIES = [
     name: '查询统计数据',
     icon: 'fa fa-table',
     examples: [
-      '本月各区域的销售总额分别是多少？',
-      '对比本季度与上季度的订单量变化',
-      '统计各产品类别的退货率排名',
+      '查询2025年1月至3月XX机构XX渠道的分类数据（可选是否进行环比）',
+      '查询2025年第一季度XX分类XX渠道的机构统计数据（可选是否进行环比）',
+      '查询2025年5月XX机构的渠道统计数据（可选是否进行环比）',
     ]
   },
   {
     name: '根据统计数据作图',
     icon: 'fa fa-chart-line',
     examples: [
-      '画一张近12个月的销售额趋势折线图',
-      '用柱状图展示各部门本季度业绩对比',
-      '生成一个各区域占比的饼图',
+      '（这里填写你查询到的统计数据），根据上述统计数据作图',
     ]
   },
   {
     name: '查询投诉详情',
     icon: 'fa fa-clipboard-list',
     examples: [
-      '查询最近7天的投诉记录及处理状态',
-      '投诉编号C20240415003的处理进度如何？',
-      '按投诉类型统计本月投诉数量分布',
+      '请查询XX（手机号或投诉人姓名）的投诉详情',
     ]
   }
 ]
@@ -111,6 +111,19 @@ export default {
 .guided-prompts {
   padding: 0 20px 8px;
   border-top: 1px solid #f3f4f6;
+}
+
+.history-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+  padding: 6px 0 2px;
+}
+
+.history-hint i {
+  font-size: 12px;
 }
 
 .category-list {

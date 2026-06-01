@@ -26,10 +26,22 @@ export function createChatState(getConversationId) {
     })
   }
 
+  function normalizeJson(jsonStr) {
+    jsonStr = jsonStr
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/\uFF1A/g, ':')
+      .replace(/\uFF0C/g, ',')
+    if (jsonStr.indexOf('"') === -1) {
+      jsonStr = jsonStr.replace(/'/g, '"')
+    }
+    return jsonStr
+  }
+
   function parseEmbeds(content) {
     var embeds = []
     var processedIds = {}
-    var embedPattern = /"type"\s*:\s*"(chart|card)"/g
+    var embedPattern = /["\u201C\u201D]type["\u201C\u201D]?\s*[:\uFF1A]\s*["\u201C\u201D](chart|card)["\u201C\u201D]/g
     var match
 
     while ((match = embedPattern.exec(content)) !== null) {
@@ -52,7 +64,18 @@ export function createChatState(getConversationId) {
       var jsonStr = content.slice(openBrace, closeBrace + 1)
 
       try {
+        jsonStr = normalizeJson(jsonStr)
         var data = JSON.parse(jsonStr)
+
+        if (data.type === 'chart' && data.data) {
+          var dataKeys = Object.keys(data.data)
+          for (var k = 0; k < dataKeys.length; k++) {
+            var val = data.data[dataKeys[k]]
+            if (typeof val === 'string' && val.trim() !== '' && !isNaN(Number(val))) {
+              data.data[dataKeys[k]] = Number(val)
+            }
+          }
+        }
 
         if (data.type === 'chart' && data.subtype) {
           var chartId = data.chartId || (data.subtype + '_' + (data.title || 'untitled'))
