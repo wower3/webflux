@@ -2,7 +2,7 @@
   <div class="guided-prompts">
     <div class="history-hint">
       <i class="fa fa-info-circle"></i>
-      <span>当前对话保留最近5轮历史上下文</span>
+      <span>当前对话保留最近2轮历史上下文</span>
     </div>
     <div class="category-list">
       <div
@@ -17,6 +17,10 @@
 
         <transition name="expand">
           <div v-if="activeIndex === i" class="example-popover" @click.stop>
+            <div class="popover-header">
+              <i :class="cat.icon"></i>
+              <span>{{ cat.name }}</span>
+            </div>
             <div v-for="(ex, j) in cat.examples" :key="j" class="example-item">
               <span class="example-text">{{ ex }}</span>
               <button
@@ -47,14 +51,14 @@ var CATEGORIES = [
   },
   {
     name: '根据统计数据作图',
-    icon: 'fa fa-chart-line',
+    icon: 'fa fa-line-chart',
     examples: [
       '（这里填写你查询到的统计数据），根据上述统计数据作图',
     ]
   },
   {
     name: '查询投诉详情',
-    icon: 'fa fa-clipboard-list',
+    icon: 'fa fa-clipboard',
     examples: [
       '请查询XX（手机号或投诉人姓名）的投诉详情',
     ]
@@ -109,7 +113,7 @@ export default {
 
 <style scoped>
 .guided-prompts {
-  padding: 0 20px 8px;
+  padding: 0 24px 8px;
   border-top: 1px solid #f3f4f6;
 }
 
@@ -128,19 +132,20 @@ export default {
 
 .category-list {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .category-card {
   flex: 1;
-  background: #f9fafb;
+  background: #fff;
   border: 1px solid #e5e7eb;
+  border-left: 3px solid #667eea;
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 10px 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 13px;
   color: #374151;
   transition: all 0.15s;
@@ -149,40 +154,60 @@ export default {
 }
 
 .category-card:hover {
-  border-color: #667eea;
-  background: #f0f0ff;
+  border-left-color: #8b5cf6;
+  background: #fafafe;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .category-card.active {
-  border-color: #667eea;
-  background: #eef2ff;
+  border-left-color: #8b5cf6;
+  background: #f5f3ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .category-card > i:first-child {
   color: #667eea;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .example-popover {
   position: absolute;
   left: 0;
   bottom: 100%;
-  margin-bottom: 4px;
-  min-width: 320px;
+  margin-bottom: 6px;
+  min-width: 340px;
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
-  padding: 6px;
+  border-radius: 12px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  padding: 0;
   z-index: 10;
+  overflow: hidden;
+}
+
+.popover-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.popover-header i {
+  color: #667eea;
 }
 
 .example-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  border-radius: 6px;
+  padding: 10px 14px;
   transition: background 0.12s;
 }
 
@@ -199,10 +224,10 @@ export default {
 }
 
 .copy-btn {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border: 1px solid #d1d5db;
-  border-radius: 5px;
+  border-radius: 8px;
   background: #fff;
   color: #9ca3af;
   cursor: pointer;
@@ -216,7 +241,8 @@ export default {
 
 .copy-btn:hover {
   border-color: #667eea;
-  color: #667eea;
+  color: #fff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .copy-btn.copied {

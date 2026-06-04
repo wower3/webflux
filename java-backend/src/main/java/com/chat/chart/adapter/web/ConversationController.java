@@ -21,7 +21,7 @@ import java.util.List;
  * @see ConversationAppServiceI
  */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/chatbot")
 public class ConversationController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConversationController.class);

@@ -53,7 +53,7 @@ export default {
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
-  z-index: 9998;
+  z-index: 99999;
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
@@ -73,7 +73,7 @@ export default {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.4);
-  z-index: 9999;
+  z-index: 100000;
   display: flex;
   justify-content: flex-end;
 }

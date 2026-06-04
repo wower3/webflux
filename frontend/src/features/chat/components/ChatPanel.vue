@@ -65,7 +65,7 @@ const initChat = async () => {
 
 const fetchConversations = async () => {
   try {
-    const res = await fetch(`/api/conversations?userId=${getUserId()}`)
+    const res = await fetch(`/chatbot/conversations?userId=${getUserId()}`)
     const data = await res.json()
     conversations.value = data.conversations || []
   } catch {
@@ -75,7 +75,7 @@ const fetchConversations = async () => {
 
 const createConversation = async () => {
   try {
-    const res = await fetch(`/api/conversation?userId=${getUserId()}`, {
+    const res = await fetch(`/chatbot/conversation?userId=${getUserId()}`, {
       method: 'POST'
     })
     const data = await res.json()
@@ -98,7 +98,7 @@ const createConversation = async () => {
 const selectConversation = async (conversationId: string) => {
   currentConversationId.value = conversationId
   try {
-    const res = await fetch(`/api/conversation/${conversationId}/messages?userId=${getUserId()}`)
+    const res = await fetch(`/chatbot/conversation/${conversationId}/messages?userId=${getUserId()}`)
     const data = await res.json()
     const msgs: Message[] = data.map((m: MessageDTO) => ({
       id: `${m.requestId}_${m.role}`,

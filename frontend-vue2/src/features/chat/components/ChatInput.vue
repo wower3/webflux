@@ -51,13 +51,13 @@ export default {
 .input-container {
   border-top: 1px solid #e5e7eb;
   background-color: #ffffff;
-  padding: 20px;
+  padding: 16px 24px;
   display: flex;
   justify-content: center;
 }
 
 .input-box {
-  max-width: 800px;
+  max-width: 100%;
   width: 100%;
   position: relative;
   display: flex;
@@ -67,6 +67,12 @@ export default {
   padding: 10px 16px;
   background: #fff;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-box:focus-within {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15), 0 0 15px rgba(0, 0, 0, 0.05);
 }
 
 .input-box ::v-deep .el-textarea {

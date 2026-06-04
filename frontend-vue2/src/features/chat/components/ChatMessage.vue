@@ -141,7 +141,7 @@ export default {
       var prev = this.localAdoptionStatus
       this.localAdoptionStatus = status
       var self = this
-      fetch('/api/chat/adoption', {
+      fetch('/chatbot/chat/adoption', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ requestId: self.requestId, adoptionStatus: status })
@@ -155,16 +155,20 @@ export default {
 
 <style scoped>
 .message-row {
-  padding: 16px 0;
+  padding: 14px 0;
+}
+
+.message-row + .message-row {
+  border-top: 1px solid #f3f4f6;
 }
 
 .message-content {
-  max-width: 800px;
+  max-width: 100%;
   margin: 0 auto;
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 0 16px;
+  padding: 0 24px;
 }
 
 .user-message {
@@ -176,15 +180,16 @@ export default {
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 16px;
+  font-size: 15px;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .user-message .avatar {
@@ -196,7 +201,7 @@ export default {
 }
 
 .message-bubble {
-  max-width: 70%;
+  max-width: 75%;
   padding: 12px 16px;
   border-radius: 18px;
   line-height: 1.6;
@@ -208,12 +213,14 @@ export default {
   background: linear-gradient(135deg, #10a37f 0%, #0d8a6a 100%);
   color: #fff;
   border-bottom-right-radius: 4px;
+  box-shadow: 0 1px 4px rgba(16, 163, 127, 0.2);
 }
 
 .ai-message .message-bubble {
   background: #f3f4f6;
   color: #1f2937;
   border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
 .user-message .message-bubble ::v-deep a {

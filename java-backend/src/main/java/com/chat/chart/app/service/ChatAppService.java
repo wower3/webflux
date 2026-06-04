@@ -90,11 +90,11 @@ public class ChatAppService implements ChatAppServiceI {
                 // 2. 生成本次请求的唯一requestId（user和assistant共用）
                 String requestId = IdGenerator.newConversationId();
 
-                // 3. 持久化用户消息到数据库
-                messageGateway.saveMessage(requestId, finalConversationId, "user", message, null);
-
-                // 4. 获取历史上下文消息（最近2个request的对话）
+                // 3. 获取历史上下文消息（先于存库，避免当前消息混入历史）
                 List<ChatMessage> contextMessages = messageGateway.findContextMessages(finalConversationId, CONTEXT_MESSAGE_ROUNDS);
+
+                // 4. 持久化用户消息到数据库
+                messageGateway.saveMessage(requestId, finalConversationId, "user", message, null);
 
                 // 5. 将上下文和用户输入组装为完整提示词
                 String fullMessage = assembleMessage(contextMessages, message);
@@ -169,12 +169,17 @@ public class ChatAppService implements ChatAppServiceI {
         StringBuilder sb = new StringBuilder();
         sb.append("历史对话：\n");
 
+        String lastRequestId = null;
         for (ChatMessage msg : contextMessages) {
+            if (lastRequestId != null && !lastRequestId.equals(msg.getRequestId())) {
+                sb.append("\n");
+            }
             String roleName = "user".equals(msg.getRole()) ? "用户" : "助手";
             sb.append(roleName).append("：").append(msg.getContent()).append("\n");
+            lastRequestId = msg.getRequestId();
         }
 
-        sb.append("用户输入：").append(userInput);
+        sb.append("\n---\n").append("当前问题：").append(userInput);
         return sb.toString();
     }
 

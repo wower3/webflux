@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -22,6 +23,7 @@ import java.util.Map;
  * @see ChatAppServiceI
  */
 @RestController
+@RequestMapping("/chatbot")
 public class ChatController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ChatController.class);
@@ -68,12 +70,12 @@ public class ChatController {
      * @param userId      从认证过滤器传递的用户ID
      * @return SseEmitter，用于流式推送AI响应
      */
-    @PostMapping(value = "/api/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStream(
             @RequestBody ChatRequest chatRequest,
             @RequestParam("userId") Long userId) {
 
-        LOGGER.info("[POST /api/chat/stream] message={}, userId={}", chatRequest.getMessage(), userId);
+        LOGGER.info("流式聊天请求: message={}, userId={}", chatRequest.getMessage(), userId);
 
         return chatAppService.handleMessage(
                 chatRequest.getMessage(),
@@ -82,9 +84,9 @@ public class ChatController {
         );
     }
 
-    @PostMapping("/api/datahub/old-stat/complaint")
+    @PostMapping("/datahub/old-stat/complaint")
     public String complaint(@RequestBody Map<String, Object> cardInfo) {
-        LOGGER.info("[POST /api/datahub/old-stat/complaint] cardInfo={}", cardInfo);
+        LOGGER.info("投诉统计回调: cardInfo={}", cardInfo);
         return "/datahub/old-stat/complaint/2238730974744936450?id=2238730974744936450";
     }
 
@@ -94,9 +96,9 @@ public class ChatController {
      * @param adoptionRequest 采纳请求体，包含requestId和adoptionStatus
      * @return 操作结果
      */
-    @PostMapping("/api/chat/adoption")
+    @PostMapping("/chat/adoption")
     public Map<String, Object> updateAdoptionStatus(@RequestBody AdoptionRequest adoptionRequest) {
-        LOGGER.info("[POST /api/chat/adoption] requestId={}, adoptionStatus={}",
+        LOGGER.info("更新消息采纳状态: requestId={}, adoptionStatus={}",
                 adoptionRequest.getRequestId(), adoptionRequest.getAdoptionStatus());
         chatAppService.updateAdoptionStatus(adoptionRequest.getRequestId(), adoptionRequest.getAdoptionStatus());
         Map<String, Object> result = new HashMap<>();

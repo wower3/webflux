@@ -1,9 +1,11 @@
 <template>
-  <div class="chat-panel">
+  <div class="chat-panel" :style="{ width: panelWidth + '%' }">
+    <div class="drag-handle" @mousedown="startDrag"></div>
     <div class="panel-header">
       <button class="icon-btn" @click="showSidebar = !showSidebar" title="会话列表">
         <i class="fa fa-bars"></i>
       </button>
+      <i class="fa fa-cube header-icon"></i>
       <span class="panel-title">AI 数据分析助手</span>
       <button class="icon-btn close-btn" @click="$emit('close')" title="关闭">
         <i class="fa fa-times"></i>
@@ -52,13 +54,57 @@ export default {
     return {
       showSidebar: false,
       conversations: [],
-      currentConversationId: null
+      currentConversationId: null,
+      panelWidth: 80,
+      isDragging: false
     }
   },
   mounted: function () {
+    this.panelWidth = this.getDefaultWidth()
     this.initChat()
   },
+  beforeDestroy: function () {
+    this.cleanDragListeners()
+  },
   methods: {
+    getDefaultWidth: function () {
+      var physicalWidth = screen.width * window.devicePixelRatio
+      if (physicalWidth >= 3840) return 30
+      if (physicalWidth >= 2560) return 40
+      return 50
+    },
+    startDrag: function (e) {
+      e.preventDefault()
+      this.isDragging = true
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+      this._onMouseMove = this.onDragMove.bind(this)
+      this._onMouseUp = this.onDragEnd.bind(this)
+      document.addEventListener('mousemove', this._onMouseMove)
+      document.addEventListener('mouseup', this._onMouseUp)
+    },
+    onDragMove: function (e) {
+      var newWidth = ((window.innerWidth - e.clientX) / window.innerWidth) * 100
+      if (newWidth < 30) newWidth = 30
+      if (newWidth > 80) newWidth = 80
+      this.panelWidth = newWidth
+    },
+    onDragEnd: function () {
+      this.isDragging = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      this.cleanDragListeners()
+    },
+    cleanDragListeners: function () {
+      if (this._onMouseMove) {
+        document.removeEventListener('mousemove', this._onMouseMove)
+        this._onMouseMove = null
+      }
+      if (this._onMouseUp) {
+        document.removeEventListener('mouseup', this._onMouseUp)
+        this._onMouseUp = null
+      }
+    },
     getUserId: function () {
       return '1'
     },
@@ -70,7 +116,7 @@ export default {
     },
     fetchConversations: function () {
       var self = this
-      return fetch('/api/conversations?userId=' + self.getUserId()).then(function (res) {
+      return fetch('/chatbot/conversations?userId=' + self.getUserId()).then(function (res) {
         return res.json()
       }).then(function (data) {
         self.conversations = data.conversations || []
@@ -78,7 +124,7 @@ export default {
     },
     createConversation: function () {
       var self = this
-      fetch('/api/conversation?userId=' + self.getUserId(), {
+      fetch('/chatbot/conversation?userId=' + self.getUserId(), {
         method: 'POST'
       }).then(function (res) {
         return res.json().then(function (data) {
@@ -103,7 +149,7 @@ export default {
     selectConversation: function (conversationId) {
       var self = this
       self.currentConversationId = conversationId
-      fetch('/api/conversation/' + conversationId + '/messages?userId=' + self.getUserId()).then(function (res) {
+      fetch('/chatbot/conversation/' + conversationId + '/messages?userId=' + self.getUserId()).then(function (res) {
         return res.json()
       }).then(function (data) {
         var msgs = data.map(function (m) {
@@ -144,29 +190,67 @@ export default {
 
 <style scoped>
 .chat-panel {
-  width: 80%;
-  height: 100%;
+  height: 80%;
   background: #fff;
   display: flex;
   flex-direction: column;
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+  position: fixed;
+  right: 20px;
+  bottom: 50px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.drag-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  cursor: col-resize;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drag-handle::after {
+  content: '';
+  width: 4px;
+  height: 32px;
+  background-image: radial-gradient(circle, #b0b8c8 1.5px, transparent 1.5px);
+  background-size: 4px 10px;
+  opacity: 0.6;
+  transition: opacity 0.15s, background-image 0.15s;
+}
+
+.drag-handle:hover::after,
+.drag-handle:active::after {
+  background-image: radial-gradient(circle, #667eea 1.5px, transparent 1.5px);
+  opacity: 1;
 }
 
 .panel-header {
   height: 52px;
   background: #fff;
-  border-bottom: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
   padding: 0 16px;
   gap: 12px;
   flex-shrink: 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header-icon {
+  font-size: 18px;
+  color: #667eea;
 }
 
 .panel-title {
   flex: 1;
   font-weight: 600;
-  font-size: 15px;
+  font-size: 16px;
   color: #1f2937;
 }
 
@@ -263,31 +347,6 @@ export default {
   color: #9ca3af;
   font-size: 11px;
   flex-shrink: 0;
-}
-
-.conv-time {
-  font-size: 11px;
-  color: #9ca3af;
-  margin-top: 3px;
-  padding-left: 19px;
-}
-
-.empty-hint {
-  text-align: center;
-  color: #9ca3af;
-  font-size: 13px;
-  padding: 32px 0;
-}
-
-.chat-area {
-  flex: 1;
-  overflow: hidden;
-}
-
-.sidebar-enter-active { transition: width 0.2s ease, opacity 0.2s ease; }
-.sidebar-leave-active { transition: width 0.15s ease, opacity 0.15s ease; }
-.sidebar-enter, .sidebar-leave-to { width: 0; opacity: 0; overflow: hidden; }
-</style>
 }
 
 .conv-time {

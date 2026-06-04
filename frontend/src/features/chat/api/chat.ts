@@ -104,5 +104,5 @@ export function sendChatStream(
   if (conversationId) {
     body.conversationId = conversationId
   }
-  return createSSEConnection(`/api/chat/stream?userId=${getUserId()}`, body, callbacks)
+  return createSSEConnection(`/chatbot/chat/stream?userId=${getUserId()}`, body, callbacks)
 }
