@@ -1,3 +1,5 @@
+import { getToken } from '@/utils/auth'
+
 var getUserId = function () { return '1' }
 
 function createSSEConnection(url, body, callbacks) {
@@ -12,7 +14,8 @@ function createSSEConnection(url, body, callbacks) {
   fetch(url, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': getToken()
     },
     body: JSON.stringify(body),
     signal: abortController.signal

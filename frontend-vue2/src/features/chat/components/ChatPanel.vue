@@ -46,6 +46,7 @@
 
 <script>
 import ChatView from './ChatView.vue'
+import { getToken } from '@/utils/auth'
 
 export default {
   name: 'ChatPanel',
@@ -116,7 +117,9 @@ export default {
     },
     fetchConversations: function () {
       var self = this
-      return fetch('/chatbot/conversations?userId=' + self.getUserId()).then(function (res) {
+      return fetch('/chatbot/conversations?userId=' + self.getUserId(), {
+        headers: { 'Authorization': getToken() }
+      }).then(function (res) {
         return res.json()
       }).then(function (data) {
         self.conversations = data.conversations || []
@@ -125,7 +128,8 @@ export default {
     createConversation: function () {
       var self = this
       fetch('/chatbot/conversation?userId=' + self.getUserId(), {
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Authorization': getToken() }
       }).then(function (res) {
         return res.json().then(function (data) {
           return { ok: res.ok, data: data }
@@ -149,7 +153,9 @@ export default {
     selectConversation: function (conversationId) {
       var self = this
       self.currentConversationId = conversationId
-      fetch('/chatbot/conversation/' + conversationId + '/messages?userId=' + self.getUserId()).then(function (res) {
+      fetch('/chatbot/conversation/' + conversationId + '/messages?userId=' + self.getUserId(), {
+        headers: { 'Authorization': getToken() }
+      }).then(function (res) {
         return res.json()
       }).then(function (data) {
         var msgs = data.map(function (m) {

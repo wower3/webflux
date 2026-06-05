@@ -43,6 +43,7 @@
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import ChartRenderer from './ChartRenderer.vue'
 import CardRenderer from './CardRenderer.vue'
+import { getToken } from '@/utils/auth'
 
 var PLACEHOLDER_PATTERN = /\[([A-Z]+):([^\]]+)\]/g
 
@@ -143,7 +144,7 @@ export default {
       var self = this
       fetch('/chatbot/chat/adoption', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': getToken() },
         body: JSON.stringify({ requestId: self.requestId, adoptionStatus: status })
       }).catch(function () {
         self.localAdoptionStatus = prev

@@ -37,3 +37,8 @@ ai-service:
   url: http://localhost:9999
   chat-api: /chatabc/chat
   timeout: 90000
+
+jwt:
+  secret: test-secret-key-for-dev
+  expiration: 604800
+  tokenHead: "Bearer "

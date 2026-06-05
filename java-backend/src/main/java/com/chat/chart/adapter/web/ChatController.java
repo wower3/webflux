@@ -6,7 +6,6 @@ import com.chat.chart.client.dto.ChatRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,31 +31,6 @@ public class ChatController {
 
     public ChatController(ChatAppServiceI chatAppService) {
         this.chatAppService = chatAppService;
-    }
-
-    /**
-     * 根路径，返回API服务基本信息
-     *
-     * @return 包含服务名称和版本号的Map
-     */
-    @GetMapping("/")
-    public Map<String, Object> root() {
-        Map<String, Object> result = new HashMap<>();
-        result.put("message", "Chat Chart API is running");
-        result.put("version", "1.0.0");
-        return result;
-    }
-
-    /**
-     * 健康检查接口
-     *
-     * @return 包含健康状态的Map
-     */
-    @GetMapping("/health")
-    public Map<String, Object> health() {
-        Map<String, Object> result = new HashMap<>();
-        result.put("status", "healthy");
-        return result;
     }
 
     /**
