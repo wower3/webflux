@@ -31,20 +31,20 @@ public class ConversationGatewayImpl implements ConversationGateway {
     }
 
     @Override
-    public Conversation findLatestByUserId(Long userId) {
+    public Conversation findLatestByUserId(String userId) {
         ConversationDO dto = conversationMapper.selectLatestByUserId(userId);
         return dto != null ? toEntity(dto) : null;
     }
 
     @Override
-    public List<Conversation> findByUserId(Long userId) {
+    public List<Conversation> findByUserId(String userId) {
         return conversationMapper.selectByUserId(userId).stream()
                 .map(this::toEntity)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public void saveConversation(String conversationId, Long userId) {
+    public void saveConversation(String conversationId, String userId) {
         ConversationDO dto = new ConversationDO();
         dto.setConversationId(conversationId);
         dto.setUserId(userId);
@@ -65,7 +65,7 @@ public class ConversationGatewayImpl implements ConversationGateway {
     }
 
     @Override
-    public Conversation findByConversationIdAndUserId(String conversationId, Long userId) {
+    public Conversation findByConversationIdAndUserId(String conversationId, String userId) {
         ConversationDO dto = conversationMapper.selectByConversationIdAndUserId(conversationId, userId);
         return dto != null ? toEntity(dto) : null;
     }

@@ -76,7 +76,7 @@ public class ChatAppService implements ChatAppServiceI {
      * @return SseEmitter，用于流式推送AI响应
      */
     @Override
-    public SseEmitter handleMessage(String message, Long userId, String conversationId) {
+    public SseEmitter handleMessage(String message, String userId, String conversationId) {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
 
         emitter.onTimeout(() -> LOGGER.warn("[Chat] SSE超时, userId={}", userId));
@@ -94,7 +94,7 @@ public class ChatAppService implements ChatAppServiceI {
                 List<ChatMessage> contextMessages = messageGateway.findContextMessages(finalConversationId, CONTEXT_MESSAGE_ROUNDS);
 
                 // 4. 持久化用户消息到数据库
-                messageGateway.saveMessage(requestId, finalConversationId, "user", message, null);
+                messageGateway.saveMessage(requestId, finalConversationId, "user", message, null, null);
 
                 // 5. 将上下文和用户输入组装为完整提示词
                 String fullMessage = assembleMessage(contextMessages, message);
@@ -128,7 +128,7 @@ public class ChatAppService implements ChatAppServiceI {
      * 如果提供了有效的conversationId则直接使用，否则创建新会话并返回新ID。
      * </p>
      */
-    private String determineConversationId(Long userId, String conversationId) {
+    private String determineConversationId(String userId, String conversationId) {
         if (conversationId != null && !conversationId.trim().isEmpty()) {
             return conversationId;
         }
@@ -264,7 +264,7 @@ public class ChatAppService implements ChatAppServiceI {
 
         private void saveAssistantReply(String content, String isSuccess) {
             try {
-                messageGateway.saveMessage(requestId, conversationId, "assistant", content, isSuccess);
+                messageGateway.saveMessage(requestId, conversationId, "assistant", content, isSuccess, AdoptionStatus.DEFAULT.getValue());
                 LOGGER.info("[Chat] 保存AI回复：conversationId={}, requestId={}, isSuccess={}",
                         conversationId, requestId, isSuccess);
             } catch (Exception ex) {

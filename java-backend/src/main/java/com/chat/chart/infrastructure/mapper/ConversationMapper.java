@@ -18,7 +18,7 @@ public interface ConversationMapper {
      * @param userId 用户ID
      * @return 最新会话数据对象
      */
-    ConversationDO selectLatestByUserId(@Param("userId") Long userId);
+    ConversationDO selectLatestByUserId(@Param("userId") String userId);
 
     /**
      * 查询用户所有会话
@@ -26,7 +26,7 @@ public interface ConversationMapper {
      * @param userId 用户ID
      * @return 会话数据对象列表
      */
-    List<ConversationDO> selectByUserId(@Param("userId") Long userId);
+    List<ConversationDO> selectByUserId(@Param("userId") String userId);
 
     /**
      * 新建会话
@@ -51,5 +51,5 @@ public interface ConversationMapper {
      * @param userId         用户ID
      * @return 会话数据对象
      */
-    ConversationDO selectByConversationIdAndUserId(@Param("conversationId") String conversationId, @Param("userId") Long userId);
+    ConversationDO selectByConversationIdAndUserId(@Param("conversationId") String conversationId, @Param("userId") String userId);
 }

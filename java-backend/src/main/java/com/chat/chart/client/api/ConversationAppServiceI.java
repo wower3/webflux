@@ -17,7 +17,7 @@ public interface ConversationAppServiceI {
      * @param userId 用户ID
      * @return 会话信息
      */
-    ConversationDTO createConversation(Long userId);
+    ConversationDTO createConversation(String userId);
 
     /**
      * 获取用户的所有会话列表
@@ -25,7 +25,7 @@ public interface ConversationAppServiceI {
      * @param userId 用户ID
      * @return 会话列表响应
      */
-    ConversationListResponse listConversations(Long userId);
+    ConversationListResponse listConversations(String userId);
 
     /**
      * 获取指定会话的历史消息
@@ -33,5 +33,5 @@ public interface ConversationAppServiceI {
      * @param conversationId 会话ID
      * @return 消息DTO列表
      */
-    List<MessageDTO> getConversationMessages(String conversationId, Long userId);
+    List<MessageDTO> getConversationMessages(String conversationId, String userId);
 }

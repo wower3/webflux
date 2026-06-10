@@ -20,7 +20,7 @@ public class Conversation {
     private String conversationId;
 
     /** 所属用户ID */
-    private Long userId;
+    private String userId;
 
     /** 会话创建时间 */
     private LocalDateTime createdAt;

@@ -44,7 +44,7 @@ npm run dev
 cd frontend-vue2
 npm install
 npm run dev
-# 端口: 8081
+# 端口: 5174
 ```
 
 ### 依赖服务
@@ -54,6 +54,16 @@ npm run dev
   - 聊天: `/chatabc/chat`
 - 超时: 90s
 - Mock AI服务: `mock-ai-service/` 目录下
+- JWT认证: 密钥 `test-secret-key-for-dev`（HS512），所有 `/chatbot/**` 接口需要 `Authorization: Bearer <token>` 请求头
+
+### 前端代理配置
+Vue2 前端 `vue.config.js` 的 devServer proxy 需同时配置 `/api` 和 `/chatbot` 两个前缀，均代理到 `http://localhost:8080`：
+```js
+proxy: {
+  '/api': { target: 'http://localhost:8080', changeOrigin: true, ws: true },
+  '/chatbot': { target: 'http://localhost:8080', changeOrigin: true, ws: true }
+}
+```
 
 ---
 
@@ -64,7 +74,7 @@ webflux/
 ├── java-backend/                    # Spring Boot后端（COLA架构）
 │   └── src/main/java/com/chat/chart/
 │       ├── adapter/                 # 适配器层
-│       │   ├── config/              #   CorsConfig
+│       │   ├── config/              #   CorsConfig, WebMvcConfig（JWT拦截器注册）
 │       │   └── web/                 #   ChatController, ConversationController, GlobalExceptionHandler
 │       ├── app/                     # 应用层
 │       │   └── service/             #   ChatAppService, ConversationAppService, StatService
@@ -77,6 +87,7 @@ webflux/
 │       │   └── util/                #   IdGenerator
 │       └── infrastructure/          # 基础设施层
 │           ├── config/              #   MybatisPlusConfig, AiServiceProperties, AiRateLimiter
+│           ├── common/              #   JwtAuthInterceptor（拦截/chatbot/**）, JwtTokenUtil
 │           ├── dataobject/          #   DO: ChatMessageDO, ConversationDO
 │           ├── gateway/             #   网关实现: AiChatGatewayImpl(OkHttp SSE), ConversationGatewayImpl, MessageGatewayImpl
 │           ├── mapper/              #   MyBatis Mapper: ChatMessageMapper, ConversationMapper, LlmParameterMapper, StatMapper
@@ -124,6 +135,7 @@ webflux/
 - Mapper接口: `@Mapper` + `@Param`，不使用 BaseMapper 自动CRUD
 - XML Mapper: `resultMap` + `sql片段` + `<where>` + `<if>` + `<foreach>`（对齐 xuanjiao2 项目风格）
 - **必传参数不加 `<if>` 条件**：如 `LlmParameterMapper` 中 `llmKey` 是必传的，直接用 `WHERE llm_key = #{llmKey}`，不加 `<if test="llmKey != null">` 防御，避免空值时生成错误SQL
+- **DO字段变更必须同步XML Mapper**：新增/修改 DO 字段时，必须同步更新对应的 XML Mapper 中的 `resultMap`、`<sql>`片段、`<insert>`、`<update>` 等所有相关语句。Java 代码编译不报错不代表 SQL 正确，遗漏会导致字段值丢失（静默失败）
 - 自动填充: `MybatisPlusConfig` 实现 `MetaObjectHandler`，INSERT时自动填充 createdAt
 - 分页插件: `PaginationInnerInterceptor`（MySQL）
 
@@ -192,20 +204,32 @@ interface Message {
   embeds?: EmbedData[]      // 通用嵌入数据（chart/card）
   timestamp: number
   isStreaming?: boolean
+  requestId?: string        // 一轮对话标识，SSE end事件中获取
+  adoptionStatus?: string   // '2'=待评价, '1'=已采纳, '0'=未采纳
+  isSuccess?: string        // '1'=成功, '0'=失败, 流式结束后前端本地设置
 }
 ```
+
+### 采纳评价机制
+- **仅第一时间评价**：采纳按钮只在流式回复结束后立即显示，刷新/切换会话后不再出现
+- **显示条件**：`role === 'assistant' && !isStreaming && requestId && isSuccess === '1'`
+- **后端存储**：保存 assistant 消息时 `adoption_status` 默认为 `'2'`（`AdoptionStatus.DEFAULT`），由 app 层决定，infrastructure 层不包含业务判断
+- **更新流程**：用户点击 → 前端调 `POST /chatbot/chat/adoption` → 后端按 `requestId` 更新该轮 assistant 消息的 `adoption_status`
+- **数据库字段**：`chat_message.is_success`（成功/失败）、`chat_message.adoption_status`（采纳状态），仅 assistant 消息有值，user 消息为 null
 
 ---
 
 ## API接口
 
+所有接口需要 `Authorization: Bearer <token>` 请求头（OPTIONS 预检请求除外）。
+
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/conversations` | GET | 查询用户会话列表 |
-| `/api/conversation` | POST | 创建新会话 |
-| `/api/conversation/{id}/messages` | GET | 查询会话消息 |
-| `/api/chat/stream` | POST | SSE流式聊天 |
-| `/api/chat/adoption` | POST | 更新消息采纳状态 `{requestId, adoptionStatus}` |
+| `/chatbot/conversations` | GET | 查询用户会话列表 |
+| `/chatbot/conversation` | POST | 创建新会话 |
+| `/chatbot/conversation/{id}/messages` | GET | 查询会话消息 |
+| `/chatbot/chat/stream` | POST | SSE流式聊天 |
+| `/chatbot/chat/adoption` | POST | 更新消息采纳状态 `{requestId, adoptionStatus}` |
 
 ---
 
@@ -258,3 +282,4 @@ interface Message {
 - Font Awesome图标通过 npm 包引入（`import 'font-awesome/css/font-awesome.min.css'`），不依赖 public 目录下的字体文件
 - userId 默认返回 `'1'`，无 localStorage 逻辑
 - 卡片确认后按钮永久禁用（组件内 local state）
+- JWT token 通过 `@/utils/auth.js` 的 `getToken()` 获取，所有后端请求需携带 `Authorization` header

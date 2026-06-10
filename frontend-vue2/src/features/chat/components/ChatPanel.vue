@@ -106,9 +106,6 @@ export default {
         this._onMouseUp = null
       }
     },
-    getUserId: function () {
-      return '1'
-    },
     initChat: function () {
       var self = this
       self.fetchConversations().then(function () {
@@ -117,7 +114,7 @@ export default {
     },
     fetchConversations: function () {
       var self = this
-      return fetch('/chatbot/conversations?userId=' + self.getUserId(), {
+      return fetch('/chatbot/conversations', {
         headers: { 'Authorization': getToken() }
       }).then(function (res) {
         return res.json()
@@ -127,7 +124,7 @@ export default {
     },
     createConversation: function () {
       var self = this
-      fetch('/chatbot/conversation?userId=' + self.getUserId(), {
+      fetch('/chatbot/conversation', {
         method: 'POST',
         headers: { 'Authorization': getToken() }
       }).then(function (res) {
@@ -153,7 +150,7 @@ export default {
     selectConversation: function (conversationId) {
       var self = this
       self.currentConversationId = conversationId
-      fetch('/chatbot/conversation/' + conversationId + '/messages?userId=' + self.getUserId(), {
+      fetch('/chatbot/conversation/' + conversationId + '/messages', {
         headers: { 'Authorization': getToken() }
       }).then(function (res) {
         return res.json()

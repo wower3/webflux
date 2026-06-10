@@ -115,4 +115,25 @@ public class JwtTokenUtil {
         }
         return !isTokenExpired(token);
     }
+
+    /**
+     * 从 token 中获取用户名（即 sub claim 的值）
+     * <p>
+     * 在拦截器中调用，解析出用户标识后设置到 request attribute，
+     * 供后续 Controller 通过 @RequestAttribute 获取。
+     * </p>
+     *
+     * @param token JWT token 字符串（不含 "Bearer " 前缀）
+     * @return 用户名（用户ID），解析失败返回 null
+     */
+    public String getUsernameFromToken(String token) {
+        String username = "";
+        try {
+            Claims claims = getClaimsFromToken(token);
+            username = claims.getSubject();
+        } catch (Exception e) {
+            username = null;
+        }
+        return username;
+    }
 }

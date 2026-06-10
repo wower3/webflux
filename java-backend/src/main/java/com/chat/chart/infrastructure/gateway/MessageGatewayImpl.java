@@ -26,7 +26,7 @@ public class MessageGatewayImpl implements MessageGateway {
     }
 
     @Override
-    public void saveMessage(String requestId, String conversationId, String role, String content, String isSuccess) {
+    public void saveMessage(String requestId, String conversationId, String role, String content, String isSuccess, String adoptionStatus) {
         ChatMessageDO dto = new ChatMessageDO();
         dto.setRequestId(requestId);
         dto.setConversationId(conversationId);
@@ -34,6 +34,7 @@ public class MessageGatewayImpl implements MessageGateway {
         dto.setContent(content);
         dto.setCreatedAt(LocalDateTime.now());
         dto.setIsSuccess(isSuccess);
+        dto.setAdoptionStatus(adoptionStatus);
         chatMessageMapper.insert(dto);
     }
 

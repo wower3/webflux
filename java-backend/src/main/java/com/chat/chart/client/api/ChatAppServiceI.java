@@ -15,7 +15,7 @@ public interface ChatAppServiceI {
      * @param conversationId 会话ID（可为null，为null时自动创建新会话）
      * @return SseEmitter，用于流式推送AI响应
      */
-    SseEmitter handleMessage(String message, Long userId, String conversationId);
+    SseEmitter handleMessage(String message, String userId, String conversationId);
 
     /**
      * 更新一轮对话的采纳状态

@@ -32,7 +32,7 @@ public class ConversationAppService implements ConversationAppServiceI {
     }
 
     @Override
-    public ConversationDTO createConversation(Long userId) {
+    public ConversationDTO createConversation(String userId) {
         String conversationId = IdGenerator.newConversationId();
         conversationGateway.saveConversation(conversationId, userId);
         LOGGER.info("[Conversation] 创建会话: userId={}, conversationId={}", userId, conversationId);
@@ -46,7 +46,7 @@ public class ConversationAppService implements ConversationAppServiceI {
     }
 
     @Override
-    public ConversationListResponse listConversations(Long userId) {
+    public ConversationListResponse listConversations(String userId) {
         List<Conversation> conversations = conversationGateway.findByUserId(userId);
         List<ConversationDTO> dtos = new ArrayList<>();
 
@@ -63,7 +63,7 @@ public class ConversationAppService implements ConversationAppServiceI {
     }
 
     @Override
-    public List<MessageDTO> getConversationMessages(String conversationId, Long userId) {
+    public List<MessageDTO> getConversationMessages(String conversationId, String userId) {
         Conversation conv = conversationGateway.findByConversationIdAndUserId(conversationId, userId);
         if (conv == null) {
             LOGGER.warn("[Conversation] 会话不存在或不属于该用户: conversationId={}, userId={}", conversationId, userId);

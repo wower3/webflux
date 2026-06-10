@@ -22,8 +22,9 @@ public interface MessageGateway {
      * @param role           消息角色（user / assistant）
      * @param content        消息内容
      * @param isSuccess      调用是否成功（1-成功，0-失败，null-用户消息）
+     * @param adoptionStatus 采纳状态（0-未采纳，1-已采纳，2-默认，null-用户消息）
      */
-    void saveMessage(String requestId, String conversationId, String role, String content, String isSuccess);
+    void saveMessage(String requestId, String conversationId, String role, String content, String isSuccess, String adoptionStatus);
 
     /**
      * 查询上下文消息

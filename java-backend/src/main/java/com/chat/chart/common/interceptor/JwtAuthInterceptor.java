@@ -70,6 +70,10 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
+        // 从 token 中解析 userId 并存入 request attribute，供 Controller 获取
+        String userId = jwtTokenUtil.getUsernameFromToken(token);
+        request.setAttribute("userId", userId);
+
         return true;
     }
 

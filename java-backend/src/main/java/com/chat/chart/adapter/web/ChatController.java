@@ -8,8 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -41,13 +41,13 @@ public class ChatController {
      * </p>
      *
      * @param chatRequest 聊天请求体，包含消息内容和会话ID
-     * @param userId      从认证过滤器传递的用户ID
+     * @param userId      从JWT拦截器传递的用户ID
      * @return SseEmitter，用于流式推送AI响应
      */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStream(
             @RequestBody ChatRequest chatRequest,
-            @RequestParam("userId") Long userId) {
+            @RequestAttribute("userId") String userId) {
 
         LOGGER.info("流式聊天请求: message={}, userId={}", chatRequest.getMessage(), userId);
 

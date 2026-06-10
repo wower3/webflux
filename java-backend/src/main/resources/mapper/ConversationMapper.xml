@@ -5,7 +5,7 @@
     <!-- 结果映射：column是数据库字段（下划线），property是Java属性（驼峰） -->
     <resultMap id="BaseResultMap" type="com.chat.chart.infrastructure.dataobject.ConversationDO">
         <id column="conversation_id" property="conversationId" jdbcType="VARCHAR"/>
-        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="user_id" property="userId" jdbcType="VARCHAR"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
     </resultMap>
 

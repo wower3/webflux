@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -33,13 +33,13 @@ public class ConversationController {
     }
 
     @PostMapping("/conversation")
-    public ConversationDTO createConversation(@RequestParam("userId") Long userId) {
+    public ConversationDTO createConversation(@RequestAttribute("userId") String userId) {
         LOGGER.info("[Conversation] 创建会话: userId={}", userId);
         return conversationAppService.createConversation(userId);
     }
 
     @GetMapping("/conversations")
-    public ConversationListResponse listConversations(@RequestParam("userId") Long userId) {
+    public ConversationListResponse listConversations(@RequestAttribute("userId") String userId) {
         LOGGER.info("[Conversation] 列出会话: userId={}", userId);
         return conversationAppService.listConversations(userId);
     }
@@ -47,7 +47,7 @@ public class ConversationController {
     @GetMapping("/conversation/{conversationId}/messages")
     public List<MessageDTO> getConversationMessages(
             @PathVariable String conversationId,
-            @RequestParam("userId") Long userId) {
+            @RequestAttribute("userId") String userId) {
         LOGGER.info("[Conversation] 获取消息: conversationId={}, userId={}", conversationId, userId);
         return conversationAppService.getConversationMessages(conversationId, userId);
     }

@@ -1,7 +1,5 @@
 import { getToken } from '@/utils/auth'
 
-var getUserId = function () { return '1' }
-
 function createSSEConnection(url, body, callbacks) {
   var ended = false
   var abortController = new AbortController()
@@ -94,5 +92,5 @@ export function sendChatStream(message, callbacks, conversationId) {
   if (conversationId) {
     body.conversationId = conversationId
   }
-  return createSSEConnection('/chatbot/chat/stream?userId=' + getUserId(), body, callbacks)
+  return createSSEConnection('/chatbot/chat/stream', body, callbacks)
 }

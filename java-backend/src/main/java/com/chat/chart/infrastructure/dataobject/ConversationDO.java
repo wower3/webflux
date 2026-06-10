@@ -16,7 +16,7 @@ public class ConversationDO {
 
     private String conversationId;
 
-    private Long userId;
+    private String userId;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

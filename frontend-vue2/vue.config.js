@@ -6,6 +6,11 @@ module.exports = {
         target: 'http://localhost:8080',
         changeOrigin: true,
         ws: true
+      },
+      '/chatbot': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        ws: true
       }
     }
   },

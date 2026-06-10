@@ -2,6 +2,7 @@ import Vue from 'vue'
 import { sendChatStream } from '../api/chat'
 
 export function createChatState(getConversationId) {
+  console.log('[DEBUG] createChatState called')
   var state = Vue.observable({
     messages: [],
     isLoading: false
@@ -39,6 +40,7 @@ export function createChatState(getConversationId) {
   }
 
   function parseEmbeds(content) {
+    console.log('[DEBUG] parseEmbeds called, content length:', content.length, 'preview:', content.substring(0, 200))
     var embeds = []
     var processedIds = {}
     var embedPattern = /["\u201C\u201D]type["\u201C\u201D]?\s*[:\uFF1A]\s*["\u201C\u201D](chart|card)["\u201C\u201D]/g
